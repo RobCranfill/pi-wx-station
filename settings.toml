@@ -1,0 +1,2 @@
+# key should be 16 chars
+ENCRYPTION_KEY = "your_key_here_xx"

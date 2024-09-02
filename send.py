@@ -1,6 +1,8 @@
 """
-CircuitPython Feather RP2040 RFM69 Packet experiments
-i/f w/ BME280 xducer
+Pi-WX-Station
+using two CircuitPython Feather RP2040 RFM69
+sending station w/ BME280 xducer
+(c)2024 rob cranfill
 """
 import json
 import random
@@ -18,6 +20,7 @@ RADIO_FREQ_MHZ = 915.0
 CS = digitalio.DigitalInOut(board.RFM_CS)
 RESET = digitalio.DigitalInOut(board.RFM_RST)
 
+# TODO: put this in 'settings.toml'
 ENCRYPTION_KEY = b"Smegma69Smegma69"
 
 
@@ -50,7 +53,6 @@ while True:
         rfm69.send(msg)
     except:
         print("failed!")
-        msg = ""
 
     time.sleep(1)
 

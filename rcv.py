@@ -5,10 +5,16 @@ receiving station
 (c)2024 rob cranfill
 """
 
+# stdlibs
 import board
 import digitalio
+
+# adafruit
 import neopixel
 import adafruit_rfm69
+
+# my code
+import displayText
 
 
 # Define some stuff
@@ -30,6 +36,10 @@ print(f"{rfm69.frequency_deviation=}")
 print(f"{rfm69.rssi=}")
 print(f"{rfm69.temperature=}")
 
+
+lmd = displayText.LEDMatrixDisplay()
+
+    
 print("Waiting for packets...")
 
 while True:
@@ -39,9 +49,13 @@ while True:
 
     # If no packet was received during the timeout then None is returned.
     if packet is not None:
-        # print(f"Received packet: {packet}")
+
         pstr = packet.decode('utf8')
         print(f"Rcvd: '{pstr}'")
+
+        for c in pstr:
+            lmd.display_single_char(c)
+
     else:
         print("No packet")
 
