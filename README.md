@@ -29,6 +29,6 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 ## Thoughts
 
-Could be made more cheaply with QTPy and Adafruit RFM69HCW Transceiver Radio Breakout?
+Could be made more cheaply with QTPy and Adafruit RFM69HCW Transceiver Radio Breakout? (Maybe not - RFM69HCW is $10, QTPy $5 and up, depending on CPU &c)
 
 

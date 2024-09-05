@@ -50,13 +50,18 @@ class LEDMatrixDisplay:
     # Rotate the list of vertical rasters thru the display, forever.
     # The input data already has the first char duplicated at the end, for ease of rotation.
     #
-    def display_forever(self, matrix, vrs, delay):
+    # display for 'main_timeout' seconds; if zero, forever
+    #
+    def display_for_a_while(self, matrix, vrs, raster_delay, main_timeout):
 
         # display all 8 of the first char; after that, 
         # rotate old ones and repaint only the new, rightmost, raster.
 
         self.display_raster(matrix, vrs[0:8])
 
+        end_sec = time.time() + main_timeout
+        print(f"display_for_a_while will time out in {main_timeout} seconds")
+        
         while True:
 
             # this is dependent on the display rotation. FIXME
@@ -65,7 +70,12 @@ class LEDMatrixDisplay:
             # get the proper 8x8 bits to display
             for i in range(len(vrs)-8):
                 self.display_raster(matrix, vrs[i:i+8])
-                time.sleep(delay)
+                time.sleep(raster_delay)
+            
+            if main_timeout > 0:
+                if time.time() > end_sec:
+                    print(f"display_for_a_while timeout!")
+                    return
 
 
     # Shift the existing pixels left 1, then paint the new rightmost raster.
@@ -92,21 +102,21 @@ class LEDMatrixDisplay:
     # NOT SURE HOW DO MAKE THIS UPDATE-ABLE.
     # FIXME TODO
     #
-    def display_scrolling_text(self, string, delay):
+    def display_scrolling_text(self, string, raster_delay, display_timeout):
 
         i2c = board.STEMMA_I2C()
         matrix = Matrix8x8(i2c)
         matrix.brightness = 1
 
-        matrix.fill(1)
-        time.sleep(1)
+        # matrix.fill(1)
+        # time.sleep(1)
         matrix.fill(0)
-        time.sleep(1)
+        # time.sleep(1)
 
         rasters = self.makeVRasters(string)
-        print(f"vertical rasters: {rasters}")
+        # print(f"vertical rasters: {rasters}")
 
-        self.display_forever(matrix, rasters, delay)
+        self.display_for_a_while(matrix, rasters, raster_delay, display_timeout)
 
 
     # Display a single character and return.
@@ -133,7 +143,7 @@ if __name__ == "__main__":
 
     # scrolling
     lmd = LEDMatrixDisplay()
-    lmd.display_scrolling_text(" Wind 8MPH; Temp 64F - ", 0.01)
+    lmd.display_scrolling_text(" Wind 8MPH; Temp 64F - ", 0.01, 0)
 
     # single char at a time
     import time, random
