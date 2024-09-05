@@ -57,6 +57,7 @@ while True:
     # If no packet was received after the timeout then None is returned.
     if packet is None:
         print("No packet")
+        lmd.display_single_char("?")
     else:
         pstr = packet.decode('utf8')
         print(f"Rcvd: '{pstr}'")
