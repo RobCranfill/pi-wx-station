@@ -1,16 +1,19 @@
 """
 Pi-WX-Station
-using two CircuitPython Feather RP2040 RFM69
-sending station w/ BME280 xducer
+Using a pair of Adafruit Feather RP2040 RFM69
+sending side
+ w/ BME280 xducer
 (c)2024 rob cranfill
 """
-import json
-import random
-import time
 
+# stdlibs
 import board
 import digitalio
+import json
+import os
+import time
 
+# adafruit libs
 import adafruit_rfm69
 from adafruit_bme280 import basic as adafruit_bme280
 
@@ -20,8 +23,8 @@ RADIO_FREQ_MHZ = 915.0
 CS = digitalio.DigitalInOut(board.RFM_CS)
 RESET = digitalio.DigitalInOut(board.RFM_RST)
 
-# TODO: put this in 'settings.toml'
-ENCRYPTION_KEY = b"Smegma69Smegma69"
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+
 
 
 # Initialise RFM69 radio
@@ -42,7 +45,8 @@ while True:
     hum  = bme280.humidity
     pres = bme280.pressure
 
-    dict['T'] = f"{temp:2.0f}"
+    t_F = (temp * 9 / 5) + 32
+    dict['T'] = f"{t_F:2.0f}"
     dict['H'] = f"{hum:2.0f}"
     dict['P'] = f"{pres:2.0f}"
 
