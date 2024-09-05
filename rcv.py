@@ -55,8 +55,9 @@ while True:
     packet = rfm69.receive(timeout=LISTEN_TIMEOUT)
 
     # If no packet was received after the timeout then None is returned.
-    if packet is not None:
-
+    if packet is None:
+        print("No packet")
+    else:
         pstr = packet.decode('utf8')
         print(f"Rcvd: '{pstr}'")
 
@@ -66,6 +67,4 @@ while True:
 
         lmd.display_scrolling_text(display_message, 0.01, 10)
 
-    else:
-        print("No packet")
 

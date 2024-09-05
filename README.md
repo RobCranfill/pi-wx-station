@@ -12,7 +12,7 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 # Method
 ## Hardware:
-  * Two Adafruit Feather RP2040 RFM69 microcontrollers
+  * Two Adafruit Feather RP2040 RFM69 microcontrollers (Adafruit part #5712)
   * I2C-based temperature/pressure/humidity sensor
   * Some kind of anemometer
   * Low priority:
@@ -29,6 +29,6 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 ## Thoughts
 
-Could be made more cheaply with QTPy and Adafruit RFM69HCW Transceiver Radio Breakout? (Maybe not - RFM69HCW is $10, QTPy $5 and up, depending on CPU &c)
+Could be made more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout?
 
 
