@@ -8,7 +8,7 @@ import keypad
 import time
 
 
-digital_input_pin_ = board.D25
+digital_input_pin_ = board.D13
 
 
 def collect_count():
