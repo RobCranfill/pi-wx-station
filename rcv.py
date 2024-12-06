@@ -30,7 +30,9 @@ RESET = digitalio.DigitalInOut(board.RFM_RST)
 # TODO: can this fail?
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
-LISTEN_TIMEOUT = 1 # seconds
+# TODO: this is probably important.
+# We send every X seconds, we should probably wait for 2X seconds??
+LISTEN_TIMEOUT = 10 
 
 
 class radio_getter:
@@ -49,26 +51,33 @@ class radio_getter:
         self.radio_ = radio
 
     def get_message(self):
-        '''Or None'''
-        r = random.randrange(0, 100)
-        msg = None
-        if r > 75:
-            msg = f"Hello {r}!"
-        return msg
+        '''Return the string to display, or None'''
 
+        # Look for a new packet - wait up to given timeout
+        packet = self.radio_.receive(timeout=LISTEN_TIMEOUT)
 
-class station_display:
+        # If no packet was received after the timeout then None is returned.
+        result = None
+        if packet is None:
+            print("No packet")
+        else:
+            pstr = packet.decode('utf8')
+            print(f"Rcvd: '{pstr}'")
 
-    def __init__(self, radio, display):
+            dict = json.loads(pstr)
+            display_message = dict["T"] + "F "
+            print(f"  display: '{display_message}'")
 
-        print(f"init {__name__}")
+            result = display_message
+
+        return result
+            
 
 
 class main_handler:
     '''Display for Adafruit 16x8 display backpack based on adafruit_ht16k33 module.'''
     DISPLAY_HEIGHT = 8
     DISPLAY_WIDTH  = 16
-
 
     def __init__(self, getter, i2c, delay, brightness=1.0):
         '''Initialize by giving us the I2C bus object, display string, and column delay.'''
@@ -92,30 +101,30 @@ class main_handler:
     #
     def display_loop(self):
 
-        msg = self.radio_getter_.get_message()
-        print(f"GOT {msg}!")
-        # TODO unpack dict and make string
-        vrs = self.make_V_rasters(msg)
-
-
-        # Initially, render leftmost DISPLAY_WIDTH columns.
-        #
-        self.display_initial_rasters(vrs[0:self.DISPLAY_WIDTH])
-        time.sleep(self.delay_)
-
-        # Now just left-shift the existing pixels, and paint the new rightmost column, forever.
-        c = self.DISPLAY_WIDTH
         while True:
-            c += 1
-            if c >= len(vrs):
-                c = self.DISPLAY_WIDTH
 
-            self.matrix_.shift(-1, 0)
+            msg = self.radio_getter_.get_message()
+            print(f" display_loop got {msg}!")
+            if msg is None:
+                msg = "?No data?"
 
-            for y in range(self.DISPLAY_HEIGHT):
-                self.matrix_[self.DISPLAY_WIDTH-1, y] = vrs[c] & (1<<(self.DISPLAY_HEIGHT-y-1))
+            vrs = self.make_V_rasters(msg)
 
+            # Initially, render leftmost DISPLAY_WIDTH columns.
+            #
+            self.display_initial_rasters(vrs[0:self.DISPLAY_WIDTH])
             time.sleep(self.delay_)
+
+            # Now just left-shift the existing pixels, and paint the new rightmost column, forever.
+
+            for c in range(self.DISPLAY_WIDTH, len(vrs)):
+
+                self.matrix_.shift(-1, 0)
+
+                for y in range(self.DISPLAY_HEIGHT):
+                    self.matrix_[self.DISPLAY_WIDTH-1, y] = vrs[c] & (1<<(self.DISPLAY_HEIGHT-y-1))
+
+                time.sleep(self.delay_)
 
 
     def show_once(self, str):
@@ -181,9 +190,6 @@ def byte_list_for_char(char):
 rg = radio_getter()
 mh = main_handler(rg, board.STEMMA_I2C(), 0.0, brightness=0.2)
 mh.display_loop()
-
-
-# sd = station_display(rfm69, d)
 
 
 
