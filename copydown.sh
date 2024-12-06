@@ -2,11 +2,14 @@
 # copy from Feathers to working dir
 # assumes 'send' device is first CP drive
 
-cp /media/rob/CIRCUITPY/send.py .
-cp /media/rob/CIRCUITPY/README.md .
-cp /media/rob/CIRCUITPY/settings.toml .
+cp $CP/send.py .
+cp $CP/README.md .
+cp $CP/settings.toml .
 
-cp /media/rob/CIRCUITPY1/rcv.py .
-cp /media/rob/CIRCUITPY1/displayText.py .
-cp /media/rob/CIRCUITPY1/led8x8Font.py .
+CP1=$CP'1'
+cp $CP1/rcv.py .
+cp $CP1/displayText.py .
+cp $CP1/led8x8Font.py .
+
+git status
 

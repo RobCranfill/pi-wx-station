@@ -30,6 +30,7 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 # send delay in seconds 
 # TODO: how should this relate to rcv.LISTEN_TIMEOUT?
 SEND_PERIOD = 4 
+print(f"Sending data every {SEND_PERIOD} seconds")
 
 
 # Initialize RFM69 radio
