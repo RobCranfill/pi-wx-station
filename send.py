@@ -36,12 +36,16 @@ print(f"Sending data every {SEND_PERIOD} seconds")
 # Initialize RFM69 radio
 rfm69 = adafruit_rfm69.RFM69(
     board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
-
 print(f"RFM temp: {rfm69.temperature}C")
 
-# init the sensor
-i2c = board.I2C()  # uses board.SCL and board.SDA
-bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
+bme280 = None
+try:
+    # init the temp/pres/hum sensor
+    i2c = board.I2C()  # uses board.SCL and board.SDA
+    bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
+except:
+    print("No temp sensor? Continuing....")
+
 
 dict = {}
 
@@ -49,15 +53,20 @@ packet_count = 0
 
 while True:
 
-    temp = bme280.temperature
-    hum  = bme280.humidity
-    pres = bme280.pressure
+    if bme280 is not None:
+        temp = bme280.temperature
+        hum  = bme280.humidity
+        pres = bme280.pressure
 
-    t_F = (temp * 9 / 5) + 32
+        t_F = (temp * 9 / 5) + 32
 
-    dict['T'] = f"{t_F:2.0f}"
-    dict['H'] = f"{hum:2.0f}"
-    dict['P'] = f"{pres:2.0f}"
+        dict['T'] = f"{t_F:2.0f}"
+        dict['H'] = f"{hum:2.0f}"
+        dict['P'] = f"{pres:2.0f}"
+    else:
+        dict['T'] = "?"
+        dict['H'] = "?"
+        dict['P'] = "?"
 
     msg = json.dumps(dict)
 
