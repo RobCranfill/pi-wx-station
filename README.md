@@ -14,7 +14,7 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 ## Hardware:
   * Two Adafruit Feather RP2040 RFM69 microcontrollers (Adafruit part #5712)
   * I2C-based temperature/pressure/humidity sensor
-  * Anemometer: Part number RS-FSJT-NPN, from Amazon
+  * Anemometer: Part number RS-FSJT-NPN, from Amazon (or see below)
   * Low priority:
     * Wind vane (for wind direction)
     * Solar sensor
@@ -23,7 +23,7 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 
 ## Software
-  * CircuitPython, of course! 9.2.2 used so far.
+  * CircuitPython, of course! 9.2.3 used far development.
   * Various Adafruit libraries; see 'requirements.txt' for output from 'circup'
 
 ## HW Notes
@@ -33,7 +33,7 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 | Brown  | VCC    | USB
 | Black  | Ground | GND
 | Blue   | signal | GPIO 13
-| Yellow | NC     | NC
+| Yellow | N/C    | N/C
 
 
 ## Thoughts
