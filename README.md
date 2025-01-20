@@ -28,15 +28,22 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 ## HW Notes
 
-| Anemometer      | Signal | Feather |
-| ----------- | ----------- | ----------- |
-| Brown/Green      | VCC       | USB
-| Black   | Ground        | GND
-| Blue   | signal        | GPIO 13
-| Yellow   | NC        | NC
+| Anemometer | Signal | Feather |
+| ------ | ------ | ------ |
+| Brown  | VCC    | USB
+| Black  | Ground | GND
+| Blue   | signal | GPIO 13
+| Yellow | NC     | NC
 
 
 ## Thoughts
 
 Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
 
+
+## Reference
+
+### Same part?
+* https://www.renkeer.com/product/polycarbon-wind-speed-sensor/
+
+When using the pulse-type wind speed sensor, connect the black wire to the power supply and signal ground, the brown wire to the 5-30VDC power supply, the green wire to the pulse signal PNPOUT, and the blue wire to NPN (NPNR) OUT. That’s it! Wide voltage power input is 5~30V.

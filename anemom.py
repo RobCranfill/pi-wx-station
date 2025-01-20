@@ -1,14 +1,15 @@
 # module for anemometer
 #
+# as per https://learn.adafruit.com/cooperative-multitasking-in-circuitpython-with-asyncio?view=all#communicating-between-tasks
+#
 import asyncio
 import board
-import countio
 import digitalio
 import keypad
 import time
 
 
-digital_input_pin_ = board.D13
+DIGITAL_INPUT_PIN = board.D13
 
 
 def collect_count(sample_time):
@@ -21,8 +22,8 @@ def collect_count(sample_time):
         global count_
         end_ticks = time.monotonic_ns() + seconds * 1000000000
 
-        print(f"collect_count: {sample_time=}")
-        print(f"start: {time.monotonic_ns()=}, end: {end_ticks=}")
+        print(f" collect_count: {sample_time=}")
+        print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}")
 
         with keypad.Keys((pin,), value_when_pressed=False) as keys:
             while True:
@@ -30,16 +31,16 @@ def collect_count(sample_time):
                 if event:
                     if event.pressed:
                         count_ += 1
-                        # print(f"pin went low: {count_=}")
+                        # print(f" pin went low: {count_=}")
                     # elif event.released:
-                        # print("pin went high")
+                        # print(" pin went high")
                 if time.monotonic_ns() > end_ticks:
-                    # print("catch_pin_transitions done!")
+                    # print(" catch_pin_transitions done!")
                     return
                 await asyncio.sleep(0)
 
     async def main(sample_time):
-        interrupt_task = asyncio.create_task(catch_pin_transitions(digital_input_pin_, sample_time))
+        interrupt_task = asyncio.create_task(catch_pin_transitions(DIGITAL_INPUT_PIN, sample_time))
         await asyncio.gather(interrupt_task)
 
     count_ = 0
@@ -52,8 +53,8 @@ print("\n**** Hello, cran!")
 while True:
     print("Collecting...")
     count = collect_count(5)
-    print(f" {count}\n")
+    print(f"{count=}\n")
     
-    print("Pausing.....")
+    print("Pausing 5 seconds.....")
     time.sleep(5)
 

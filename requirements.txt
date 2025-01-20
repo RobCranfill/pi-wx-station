@@ -1,8 +1,4 @@
-adafruit_bme280==2.6.25
-adafruit_bus_device==5.2.9
-adafruit_ht16k33==4.6.9
-adafruit_pixelbuf==2.0.4
-adafruit_rfm69==2.1.21
-adafruit_ticks==1.1.0
-asyncio==1.3.2
-neopixel==6.3.11
+adafruit_rfm69==2.1.23
+adafruit_ticks==1.1.2
+asyncio==1.3.4
+adafruit_bus_device==5.2.11
