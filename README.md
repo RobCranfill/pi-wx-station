@@ -23,9 +23,15 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 
 ## Software
-  * CircuitPython, of course! 9.1.4 used.
+  * CircuitPython, of course! 9.2.2 used so far.
   * Various Adafruit libraries; see 'requirements.txt' for output from 'circup'
 
+HW Notes
+Anemometer connector
+Brown/Green - VCC    - USB
+Black       - Ground - GND
+Yellow      - NC
+Blue        - signal - GPIO 13
 
 ## Thoughts
 
