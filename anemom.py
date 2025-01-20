@@ -10,6 +10,10 @@ import keypad
 import time
 
 
+# Gotta figure this out!
+COUNT_TO_MPH = 20
+
+
 class anemom:
     """Class to encapsulate anemometer code."""
 
@@ -52,18 +56,21 @@ class anemom:
         asyncio.run(gather_events(sample_time))
         return self.count_
 
+    def count_to_mph(self, count, sample_time):
+        return count/(COUNT_TO_MPH*sample_time)
+
 
 def demo():
 
-    anemometer = anemom(board.D13, debug=True)
+    anemometer = anemom(board.D13, debug=False)
 
-    collect_time = 5 # seconds
+    collect_time = 1 # seconds
     busy_time = 3 # seconds
 
     while True:
         print(f"Collecting for {collect_time} seconds...")
         count = anemometer.collect_count(collect_time)
-        print(f"  {count=}")
+        print(f"  {count=} -> {anemometer.count_to_mph(count, collect_time)} MPH")
 
         # to simulate the user code doing something else for a while....
         print(f"Pausing {busy_time} seconds...")
