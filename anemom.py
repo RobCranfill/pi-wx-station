@@ -11,7 +11,7 @@ import time
 
 
 # Gotta figure this out!
-COUNT_TO_MPH = 20
+COUNT_TO_MPH = 2
 
 
 class anemom:
@@ -22,6 +22,9 @@ class anemom:
 
         self._input_pin = input_pin
         self._debug = debug
+
+        # input = digitalio.DigitalInOut(input_pin)
+        # input.direction = digitalio.Direction.INPUT
 
     def collect_count(self, sample_time):
         """Collect pin transitions for the indicated period (seconds)"""
@@ -45,6 +48,7 @@ class anemom:
                             # print(" pin went high")
                     if time.monotonic_ns() > end_ticks:
                         # print(" catch_pin_transitions done!")
+                        print(f" catch_pin_transitions: {self.count_=}") if self._debug else True
                         return
                     await asyncio.sleep(0)
 
@@ -56,21 +60,23 @@ class anemom:
         asyncio.run(gather_events(sample_time))
         return self.count_
 
-    def count_to_mph(self, count, sample_time):
+    def get_mph(self, sample_time):
+        """Combine the two frequently used methods"""
+        count = self.collect_count(sample_time)
         return count/(COUNT_TO_MPH*sample_time)
 
 
 def demo():
 
-    anemometer = anemom(board.D13, debug=False)
+    anemometer = anemom(board.D12, debug=False)
 
     collect_time = 1 # seconds
     busy_time = 3 # seconds
 
     while True:
         print(f"Collecting for {collect_time} seconds...")
-        count = anemometer.collect_count(collect_time)
-        print(f"  {count=} -> {anemometer.count_to_mph(count, collect_time)} MPH")
+
+        print(f" {anemometer.get_mph(collect_time)}")
 
         # to simulate the user code doing something else for a while....
         print(f"Pausing {busy_time} seconds...")

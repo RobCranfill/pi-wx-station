@@ -16,9 +16,16 @@ import time
 # adafruit libs
 import adafruit_rfm69
 from adafruit_bme280 import basic as adafruit_bme280
+import neopixel
+
+# our libs
+import anemom
 
 
 # Define some stuff
+COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
+
+# Don't change this!
 RADIO_FREQ_MHZ = 915.0
 CS = digitalio.DigitalInOut(board.RFM_CS)
 RESET = digitalio.DigitalInOut(board.RFM_RST)
@@ -31,7 +38,6 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 # TODO: how should this relate to rcv.LISTEN_TIMEOUT?
 SEND_PERIOD = 4 
 print(f"Sending data every {SEND_PERIOD} seconds")
-
 
 # Initialize RFM69 radio
 rfm69 = adafruit_rfm69.RFM69(
@@ -46,12 +52,16 @@ try:
 except:
     print("No temp sensor? Continuing....")
 
-
-dict = {}
+anemometer = anemom.anemom(board.D12, debug=True)
 
 packet_count = 0
 
+neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
+neo.fill(0x000000)
+
 while True:
+
+    dict = {}
 
     if bme280 is not None:
         temp = bme280.temperature
@@ -68,6 +78,10 @@ while True:
         dict['H'] = "?"
         dict['P'] = "?"
 
+    wind = anemometer.get_mph(COLLECTION_TIME)
+    print(f"  {wind} MPH")
+    dict['W'] = f"{wind:2.0f}"
+
     msg = json.dumps(dict)
 
     packet_count += 1
@@ -76,6 +90,10 @@ while True:
         rfm69.send(msg)
     except:
         print("failed!")
+
+    neo.fill(0x808000)
+    time.sleep(.01)
+    neo.fill(0)
 
     time.sleep(SEND_PERIOD)
 

@@ -41,6 +41,7 @@ class radio_getter:
 
         # Initialize RFM69 radio
         radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+        self.radio_ = radio
 
         print(f"\t{radio.bitrate=}")
         print(f"\t{radio.encryption_key=}")
@@ -48,7 +49,6 @@ class radio_getter:
         print(f"\t{radio.rssi=}")
         print(f"\t{radio.temperature=}")
 
-        self.radio_ = radio
 
     def get_message(self):
         '''Return the string to display, or None'''
@@ -59,23 +59,45 @@ class radio_getter:
         # If no packet was received after the timeout then None is returned.
         result = None
         if packet is None:
-            print("No packet")
+            print("No packet?")
         else:
             pstr = packet.decode('utf8')
             print(f"Rcvd: '{pstr}'")
 
             dict = json.loads(pstr)
-            display_message = dict["T"] + "F "
-            print(f"  display: '{display_message}'")
-
-            result = display_message
+            result = dict["T"] + "F " + dict["H"] + "%"
+            print(f"  display: '{result}'")
 
         return result
-            
+
+def fade_to(m, start, end, step, delay):
+    b = start
+    while b < end:
+        m.brightness = b
+        time.sleep(delay)
+        b += step
+
+def fade_in(m):
+    # fade_to(m, 0, 1, 0.01, 0.1)
+    b = 0
+    while b <= 1:
+        m.brightness = b
+        time.sleep(0.01)
+        b += 0.01
+    m.brightness = 1
+
+def fade_out(m):
+    # fade_to(m, 1, 0, -0.01, 0.1)
+    b = 1
+    while b >= 0:
+        m.brightness = b
+        time.sleep(0.01)
+        b -= 0.01
+    m.brightness = 0
 
 
 class main_handler:
-    '''Display for Adafruit 16x8 display backpack based on adafruit_ht16k33 module.'''
+    '''Display on an Adafruit 16x8 display backpack - based on adafruit_ht16k33 module.'''
     DISPLAY_HEIGHT = 8
     DISPLAY_WIDTH  = 16
 
@@ -89,10 +111,8 @@ class main_handler:
 
         self.matrix_.fill(0)
 
-
     def set_brightness(self, b):
         self.matrix_.brightness = b
-
 
 
     # Rotate the list of vertical rasters thru the display, forever.
@@ -103,35 +123,32 @@ class main_handler:
 
         while True:
 
+            # TODO: adjust display brightness according to ambient light.
+
             msg = self.radio_getter_.get_message()
-            print(f" display_loop got {msg}!")
+            print(f" display_loop got '{msg}'")
             if msg is None:
                 msg = "?No data?"
+
+            msg += "  "
 
             vrs = self.make_V_rasters(msg)
 
             # Initially, render leftmost DISPLAY_WIDTH columns.
             #
             self.display_initial_rasters(vrs[0:self.DISPLAY_WIDTH])
+            fade_in(self.matrix_)
             time.sleep(self.delay_)
 
             # Now just left-shift the existing pixels, and paint the new rightmost column, forever.
 
             for c in range(self.DISPLAY_WIDTH, len(vrs)):
-
                 self.matrix_.shift(-1, 0)
-
                 for y in range(self.DISPLAY_HEIGHT):
                     self.matrix_[self.DISPLAY_WIDTH-1, y] = vrs[c] & (1<<(self.DISPLAY_HEIGHT-y-1))
-
                 time.sleep(self.delay_)
 
-
-    def show_once(self, str):
-        print(f"show_once: '{str}'")
-        vr = self.make_V_rasters(str)
-        self.display_forever(vr, 0, True) # FIXME: delay
-
+            fade_out(self.matrix_)
 
     # For the string, create the big list of bit values (columns), left to right.
     #
@@ -184,33 +201,7 @@ def byte_list_for_char(char):
 
 
 # ##################################################
-# ##################################################
-
 
 rg = radio_getter()
 mh = main_handler(rg, board.STEMMA_I2C(), 0.0, brightness=0.2)
 mh.display_loop()
-
-
-
-# while True:
-
-#     # Look for a new packet - wait up to given timeout
-#     packet = rfm69.receive(timeout=LISTEN_TIMEOUT)
-
-#     # If no packet was received after the timeout then None is returned.
-#     if packet is None:
-#         print("No packet")
-
-#         # lmd.display_single_char("?")
-
-#     else:
-#         pstr = packet.decode('utf8')
-#         print(f"Rcvd: '{pstr}'")
-
-#         dict = json.loads(pstr)
-#         display_message = dict["T"] + "F "
-#         print(f"  display: '{display_message}'")
-
-#         # lmd.display_scrolling_text(display_message, 0.01, 10)
-

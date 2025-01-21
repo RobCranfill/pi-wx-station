@@ -47,3 +47,6 @@ Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiv
 * https://www.renkeer.com/product/polycarbon-wind-speed-sensor/
 
 When using the pulse-type wind speed sensor, connect the black wire to the power supply and signal ground, the brown wire to the 5-30VDC power supply, the green wire to the pulse signal PNPOUT, and the blue wire to NPN (NPNR) OUT. That’s it! Wide voltage power input is 5~30V.
+
+### Helpful article
+ * https://how2electronics.com/interfacing-anemometer-npn-pulse-output-with-arduino/
