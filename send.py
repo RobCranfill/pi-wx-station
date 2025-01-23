@@ -1,9 +1,10 @@
 """
-Pi-WX-Station
-Using a pair of Adafruit Feather RP2040 RFM69
-sending side
- w/ BME280 xducer
-(c)2024 rob cranfill
+    Pi-WX-Station
+    Using a pair of Adafruit Feather RP2040 RFM69
+    sending side
+    w/ BME280 xducer
+    and an anemomter
+    (c)2025 rob cranfill
 """
 
 # stdlibs
@@ -30,6 +31,7 @@ RADIO_FREQ_MHZ = 915.0
 CS = digitalio.DigitalInOut(board.RFM_CS)
 RESET = digitalio.DigitalInOut(board.RFM_RST)
 
+
 # Read 16-character encryption key.
 # TODO: can this fail?
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
@@ -52,13 +54,12 @@ try:
 except:
     print("No temp sensor? Continuing....")
 
-anemometer = anemom.anemom(board.D12, debug=True)
-
-packet_count = 0
+anemometer = anemom.anemom(board.D12, debug=False)
 
 neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
-neo.fill(0x000000)
+neo.fill(0)
 
+packet_count = 0
 while True:
 
     dict = {}
