@@ -25,6 +25,7 @@ import anemom
 
 # Define some stuff
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
+LED_SEND_COLOR = 0x0000FF
 
 # Don't change this!
 RADIO_FREQ_MHZ = 915.0
@@ -44,6 +45,8 @@ print(f"Sending data every {SEND_PERIOD} seconds")
 # Initialize RFM69 radio
 rfm69 = adafruit_rfm69.RFM69(
     board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+
+# Just for fun:
 print(f"RFM temp: {rfm69.temperature}C")
 
 bme280 = None
@@ -54,10 +57,11 @@ try:
 except:
     print("No temp sensor? Continuing....")
 
-anemometer = anemom.anemom(board.D12, debug=False)
 
 neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
 neo.fill(0)
+
+anemometer = anemom.anemom(board.D12, debug=False, neopixel=neo)
 
 packet_count = 0
 while True:
@@ -85,6 +89,8 @@ while True:
 
     msg = json.dumps(dict)
 
+    neo.fill(LED_SEND_COLOR)
+
     packet_count += 1
     print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
     try:
@@ -92,8 +98,6 @@ while True:
     except:
         print("failed!")
 
-    neo.fill(0x808000)
-    time.sleep(.01)
     neo.fill(0)
 
     time.sleep(SEND_PERIOD)
