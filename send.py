@@ -14,6 +14,8 @@ import json
 import os
 import time
 
+import microcontroller
+
 # adafruit libs
 import adafruit_rfm69
 from adafruit_bme280 import basic as adafruit_bme280
@@ -27,6 +29,8 @@ import anemom
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
 LED_SEND_COLOR = 0x0000FF
 
+POST_SEND_LED_BLINK = 0.1
+
 # Don't change this!
 RADIO_FREQ_MHZ = 915.0
 CS = digitalio.DigitalInOut(board.RFM_CS)
@@ -39,7 +43,7 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 # send delay in seconds 
 # TODO: how should this relate to rcv.LISTEN_TIMEOUT?
-SEND_PERIOD = 4 
+SEND_PERIOD = 4
 print(f"Sending data every {SEND_PERIOD} seconds")
 
 # Initialize RFM69 radio
@@ -49,9 +53,9 @@ rfm69 = adafruit_rfm69.RFM69(
 # Just for fun:
 print(f"RFM temp: {rfm69.temperature}C")
 
+# The temperature/humidity/pressure sensor, if any.
 bme280 = None
 try:
-    # init the temp/pres/hum sensor
     i2c = board.I2C()  # uses board.SCL and board.SDA
     bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
 except:
@@ -64,6 +68,8 @@ neo.fill(0)
 anemometer = anemom.anemom(board.D12, debug=False, neopixel=neo)
 
 packet_count = 0
+time_start = time.time() # seconds
+
 while True:
 
     dict = {}
@@ -89,18 +95,20 @@ while True:
 
     msg = json.dumps(dict)
 
-    neo.fill(LED_SEND_COLOR)
-
     packet_count += 1
     print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
     try:
+        neo.fill(LED_SEND_COLOR)
         rfm69.send(msg)
+        time.sleep(POST_SEND_LED_BLINK)
     except:
-        print("failed!")
+        print("*** Sending packet failed!")
+    finally:
+        neo.fill(0)
 
-    neo.fill(0)
-
+    print(f" Uptime: {time.time()-time_start} seconds")
+    print(f" CPU: {microcontroller.cpu.temperature:1.0f} C; radio: {rfm69.temperature:1.0f} C")
     time.sleep(SEND_PERIOD)
 
-print("done!")
+# we never exit the send loop, above. 
 

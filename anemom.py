@@ -7,22 +7,32 @@ import asyncio
 import board
 import digitalio
 import keypad
+import neopixel
 import time
 
 
+# Correction factor for count to MPH.
+# MPH =  COUNT_TO_MPH * counts_per_sample_time / sample_time
 # Gotta figure this out!
-COUNT_TO_MPH = 2
+COUNT_TO_MPH = 2.0
+
+LED_BLIP_COLOR = 0xFF0000
 
 
 class anemom:
     """Class to encapsulate anemometer code."""
 
-    def __init__(self, input_pin, debug=False):
+    def __init__(self, input_pin, debug=False, neopixel=None):
         """Debug flag will emit a bit of verbiage"""
 
         self._input_pin = input_pin
         self._debug = debug
+        self._neopixel = neopixel
 
+        print(f"Creating anemom class. {COUNT_TO_MPH=}") if self._debug else True
+
+        # we don't need to - and can't - do this, because keypad.Keys does it for us.
+        #
         # input = digitalio.DigitalInOut(input_pin)
         # input.direction = digitalio.Direction.INPUT
 
@@ -30,9 +40,9 @@ class anemom:
         """Collect pin transitions for the indicated period (seconds)"""
 
         async def catch_pin_transitions(pin, seconds):
+            """Watch the given pin for the indicated number of seconds"""
 
             end_ticks = time.monotonic_ns() + seconds * 1000000000
-
             print(f" collect_count: {sample_time=}") if self._debug else True
             print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
 
@@ -43,9 +53,15 @@ class anemom:
                         if event.pressed:
                             self.count_ += 1
                             # print(f" pin went low: {self.count_=}")
-                        # we don't care about up-transitions
-                        # elif event.released:
+                            
+                            if self._neopixel is not None:
+                                self._neopixel.fill(LED_BLIP_COLOR)
+
+                        elif event.released:
                             # print(" pin went high")
+                             if self._neopixel is not None:
+                                 self._neopixel.fill(0)
+
                     if time.monotonic_ns() > end_ticks:
                         # print(" catch_pin_transitions done!")
                         print(f" catch_pin_transitions: {self.count_=}") if self._debug else True
@@ -61,12 +77,13 @@ class anemom:
         return self.count_
 
     def get_mph(self, sample_time):
-        """Combine the two frequently used methods"""
+        """This is the useful thing."""
         count = self.collect_count(sample_time)
-        return count/(COUNT_TO_MPH*sample_time)
+        return count * COUNT_TO_MPH / sample_time
 
 
 def demo():
+    """Being an example of using this class."""
 
     anemometer = anemom(board.D12, debug=False)
 
