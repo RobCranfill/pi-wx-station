@@ -69,18 +69,18 @@ def fade_to(m, start, end, step, delay):
         time.sleep(delay)
         b += step
 
-def fade_in(m):
+def fade_in(m, max=1):
     # fade_to(m, 0, 1, 0.01, 0.1)
     b = 0
-    while b <= 1:
+    while b <= max:
         m.brightness = b
         time.sleep(0.01)
         b += 0.01
-    m.brightness = 1
+    m.brightness = max
 
-def fade_out(m):
+def fade_out(m, start=1):
     # fade_to(m, 1, 0, -0.01, 0.1)
-    b = 1
+    b = start
     while b >= 0:
         m.brightness = b
         time.sleep(0.01)
@@ -162,36 +162,42 @@ def run():
     mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
 
     while True:
+
+        # TODO: calculate this from light sensor
+        max_brightness = 0.5
+
         data = get_message(radio)
         print(f"{data=}")
+        if data == None:
 
-        for k in ["T", "W"]:
-            v = data[k]
-            if len(v) < 2:
-                v = " " + v
-            print(f" {k} = '{v}'")
-            
-            mx.brightness = 0
-            display_initial_rasters(mx, make_V_rasters(v))
+            mx.brightness = .5
+            display_initial_rasters(mx, make_V_rasters("??"))
 
-            if k == "T":
-                set_wind_indicator(mx, 0)
-            else:
-                set_wind_indicator(mx, 1)
+        else:
+            for k in ["T", "W"]:
+                v = data[k]
+                if len(v) < 2:
+                    v = " " + v
+                print(f" {k} = '{v}'")
+                
+                mx.brightness = 0
+                display_initial_rasters(mx, make_V_rasters(v))
 
-            fade_in(mx)
-            time.sleep(1)
-            fade_out(mx)
+                if k == "T":
+                    set_wind_indicator(mx, 0)
+                else:
+                    set_wind_indicator(mx, 1)
+
+                fade_in(mx, max = max_brightness)
+                time.sleep(1)
+                fade_out(mx, start = max_brightness)
 
 def test():
     mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
     while True:
         for s in ["AB", "cd", "Ef", "gH"]:
-            r = make_V_rasters(s)
-            # print(f" {r=}")
-
             mx.brightness = 0
-            display_initial_rasters(mx, r)
+            display_initial_rasters(mx, make_V_rasters(s))
             fade_in(mx)
             time.sleep(1)
             fade_out(mx)
