@@ -41,12 +41,12 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 LISTEN_TIMEOUT = 8
 
 
-
 def get_ambient_lux(light_sensor):
     # print(f"Proximity is: {light_sensor.proximity}")
     lux = light_sensor.lux
-    print(f"Ambient is: {lux}")
+    # print(f"Ambient is: {lux}")
     return lux
+
 
 def get_message(rfm):
     '''Return the dictionary of values, or None'''
@@ -78,8 +78,9 @@ def fade_to(m, start, end, step, delay):
         b += step
 
 def fade_in(m, max=1):
-    # fade_to(m, 0, 1, 0.01, 0.1)
     b = 0
+    if max > 1:
+        max = 1
     while b <= max:
         m.brightness = b
         time.sleep(0.01)
@@ -87,7 +88,6 @@ def fade_in(m, max=1):
     m.brightness = max
 
 def fade_out(m, start=1):
-    # fade_to(m, 1, 0, -0.01, 0.1)
     b = start
     while b >= 0:
         m.brightness = b
@@ -182,9 +182,12 @@ def run():
 
         # adjust display brighness acccording to ambient light
         lux = get_ambient_lux(sensor)
-        print(f"Adjust to {lux}")
+        # print(f"Adjust to {lux}")
 
         max_brightness = lux / 1000
+        if max_brightness > 1:
+            max_brightness = 1
+
         print(f"Setting max brightness to {max_brightness}")
 
 
