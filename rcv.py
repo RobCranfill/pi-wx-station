@@ -16,6 +16,7 @@ import time
 import neopixel
 import adafruit_rfm69
 from adafruit_ht16k33 import matrix
+import adafruit_vcnl4020
 
 # mine
 import led8x8Font
@@ -39,6 +40,13 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 # We send every X seconds, we should probably wait for 2X seconds??
 LISTEN_TIMEOUT = 8
 
+
+
+def get_ambient_lux(light_sensor):
+    # print(f"Proximity is: {light_sensor.proximity}")
+    lux = light_sensor.lux
+    print(f"Ambient is: {lux}")
+    return lux
 
 def get_message(rfm):
     '''Return the dictionary of values, or None'''
@@ -161,10 +169,24 @@ def run():
 
     mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
 
+
+    # Initialize VCNL4020
+    sensor = None
+    try:
+        sensor = adafruit_vcnl4020.Adafruit_VCNL4020(board.I2C())
+    except:
+        print("No light sensor? Continuing....")
+
+
     while True:
 
-        # TODO: calculate this from light sensor
-        max_brightness = 0.5
+        # adjust display brighness acccording to ambient light
+        lux = get_ambient_lux(sensor)
+        print(f"Adjust to {lux}")
+
+        max_brightness = lux / 1000
+        print(f"Setting max brightness to {max_brightness}")
+
 
         data = get_message(radio)
         print(f"{data=}")
