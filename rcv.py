@@ -139,7 +139,7 @@ def blank(matrix):
         for x in range(DISPLAY_WIDTH):
             matrix[x, y] = 0
 
-def set_wind_indicator(matrix, one_or_zero):
+def set_mode_indicator(matrix, is_temperature):
     """What?"""
 
     # horizontal line under all digits?
@@ -147,7 +147,7 @@ def set_wind_indicator(matrix, one_or_zero):
     #     matrix[x, 7] = one_or_zero
 
     # vertical line to left? that's better
-    if one_or_zero == 0:
+    if is_temperature:
         ys = [0,1,2,3]
     else:
         ys = [4,5,6,7]
@@ -211,12 +211,13 @@ def run():
                 # print(f" {key} = '{val}'")
 
                 mx.brightness = 0
+                print(f" display '{val}'")
                 display_rasters(mx, make_V_rasters(val))
 
                 if key == "T":
-                    set_wind_indicator(mx, 0)
+                    set_mode_indicator(mx, True)
                 else:
-                    set_wind_indicator(mx, 1)
+                    set_mode_indicator(mx, False)
 
                 fade_in(mx, max = max_brightness)
                 time.sleep(DISPLAY_TIMEOUT)
@@ -244,9 +245,11 @@ def test():
 while True:
     try:
         run()
+    except KeyboardInterrupt:
+        break
     except:
         print("Got exception; going around again!")
 
-print("DONE!") # only gets here in test mode
-while True:
-    pass
+print("DONE!")
+# while True:
+#     pass
