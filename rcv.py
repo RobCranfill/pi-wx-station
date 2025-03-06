@@ -4,6 +4,9 @@
 # 
 # No scrolling, just fading in and out?
 
+# TODO: send/rcv a packet number, just for fun?
+
+
 # stdlibs
 import board
 import digitalio
@@ -39,6 +42,7 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 # TODO: this may be important.
 # We send every X seconds, we should probably wait for 2X seconds??
 LISTEN_TIMEOUT = 8
+DISPLAY_TIMEOUT = 2
 
 
 def get_ambient_lux(light_sensor):
@@ -49,10 +53,12 @@ def get_ambient_lux(light_sensor):
 
 
 def get_message(rfm):
-    '''Return the dictionary of values, or None'''
+    '''Return the dictionary of values received by the radio, or None'''
 
     # Look for a new packet - wait up to given timeout
+    print("Listening...")
     packet = rfm.receive(timeout=LISTEN_TIMEOUT)
+    print("  Got a packet")
 
     # If no packet was received after the timeout then None is returned.
     result = None
@@ -60,7 +66,7 @@ def get_message(rfm):
         print("No packet?")
     else:
         pstr = packet.decode('utf8')
-        print(f"Rcvd: '{pstr}'")
+        # print(f"Rcvd: '{pstr}'")
         dict = json.loads(pstr)
 
         # result = dict["T"] + "F " + dict["H"] + "%"
@@ -70,31 +76,33 @@ def get_message(rfm):
     return result
 
 
-def fade_to(m, start, end, step, delay):
-    b = start
-    while b < end:
-        m.brightness = b
-        time.sleep(delay)
-        b += step
+# def fade_to(m, start, end, step, delay):
+#     b = start
+#     while b < end:
+#         m.brightness = b
+#         time.sleep(delay)
+#         b += step
+
+FADE_STEP = 0.1
+FADE_SLEEP_TIME = 0.05
 
 def fade_in(m, max=1):
     b = 0
-    if max > 1:
-        max = 1
     while b <= max:
         m.brightness = b
-        time.sleep(0.01)
-        b += 0.01
+        time.sleep(FADE_SLEEP_TIME)
+        b += FADE_STEP
     m.brightness = max
+    time.sleep(FADE_SLEEP_TIME)
 
 def fade_out(m, start=1):
     b = start
     while b >= 0:
         m.brightness = b
-        time.sleep(0.01)
-        b -= 0.01
+        time.sleep(FADE_SLEEP_TIME)
+        b -= FADE_STEP
     m.brightness = 0
-
+    time.sleep(FADE_SLEEP_TIME)
 
 # For the string, create the big list of bit values (columns), left to right.
 #
@@ -121,7 +129,7 @@ def make_V_rasters(string):
 
 # Display the given raster lines - full display width.
 #
-def display_initial_rasters(matrix, rasters):
+def display_rasters(matrix, rasters):
     for y in range(DISPLAY_HEIGHT):
         for x in range(len(rasters)):
             matrix[x, y] = rasters[x] & (1<<(DISPLAY_HEIGHT-y-1))
@@ -138,7 +146,7 @@ def set_wind_indicator(matrix, one_or_zero):
     # for x in range(DISPLAY_WIDTH):
     #     matrix[x, 7] = one_or_zero
 
-    # vertical line to left?
+    # vertical line to left? that's better
     if one_or_zero == 0:
         ys = [0,1,2,3]
     else:
@@ -187,50 +195,58 @@ def run():
         max_brightness = lux / 1000
         if max_brightness > 1:
             max_brightness = 1
-
-        print(f"Setting max brightness to {max_brightness}")
-
+        # print(f"Setting max brightness to {max_brightness}")
 
         data = get_message(radio)
         print(f"{data=}")
         if data == None:
-
             mx.brightness = .5
-            display_initial_rasters(mx, make_V_rasters("??"))
-
+            display_rasters(mx, make_V_rasters("??"))
         else:
-            for k in ["T", "W"]:
-                v = data[k]
-                if len(v) < 2:
-                    v = " " + v
-                print(f" {k} = '{v}'")
-                
-                mx.brightness = 0
-                display_initial_rasters(mx, make_V_rasters(v))
+            print("Beginning data display...")
+            for key in ["T", "W"]:
+                val = data[key]
+                if len(val) < 2:
+                    val = " " + val
+                # print(f" {key} = '{val}'")
 
-                if k == "T":
+                mx.brightness = 0
+                display_rasters(mx, make_V_rasters(val))
+
+                if key == "T":
                     set_wind_indicator(mx, 0)
                 else:
                     set_wind_indicator(mx, 1)
 
                 fade_in(mx, max = max_brightness)
-                time.sleep(1)
+                time.sleep(DISPLAY_TIMEOUT)
                 fade_out(mx, start = max_brightness)
+            print("End data display.\n")
+
 
 def test():
+    """Test stuff - display timing, etc"""
     mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
     while True:
-        for s in ["AB", "cd", "Ef", "gH"]:
+        for s in ["64", " 0", "66", "12"]:
+
             mx.brightness = 0
-            display_initial_rasters(mx, make_V_rasters(s))
+            display_rasters(mx, make_V_rasters(s))
+
             fade_in(mx)
             time.sleep(1)
             fade_out(mx)
+
         blank(mx)
 
-run()
 # test()
 
-print("DONE!")
+while True:
+    try:
+        run()
+    except:
+        print("Got exception; going around again!")
+
+print("DONE!") # only gets here in test mode
 while True:
     pass
