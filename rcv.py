@@ -46,7 +46,12 @@ DISPLAY_TIMEOUT = 2
 
 
 def get_ambient_lux(light_sensor):
+
     # print(f"Proximity is: {light_sensor.proximity}")
+
+    if light_sensor is None:
+        return 1000 # full brightness, sorta
+
     lux = light_sensor.lux
     # print(f"Ambient is: {lux}")
     return lux
@@ -161,37 +166,43 @@ def byte_list_for_char(char):
     bits = led8x8Font.FontData[char]
     return bits
 
-
-# ##################################################
-def run():
+def init_hardware():
 
     # Initialize RFM69 radio
-    radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+    rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
 
-    print(f"  {radio.bitrate=}")
-    print(f"  {radio.encryption_key=}")
-    print(f"  {radio.frequency_deviation=}")
-    print(f"  {radio.rssi=}")
-    print(f"  {radio.temperature=}")
+    print(f"  {rfm.bitrate=}")
+    print(f"  {rfm.encryption_key=}")
+    print(f"  {rfm.frequency_deviation=}")
+    print(f"  {rfm.rssi=}")
+    print(f"  {rfm.temperature=}")
     print()
 
-    mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
-
+    leds = matrix.MatrixBackpack16x8(board.I2C())
 
     # Initialize VCNL4020
     sensor = None
     try:
-        sensor = adafruit_vcnl4020.Adafruit_VCNL4020(board.I2C())
+        vcln = adafruit_vcnl4020.Adafruit_VCNL4020(board.I2C())
     except:
         print("No light sensor? Continuing....")
 
+    return rfm, leds, vcln
+
+
+# ##################################################
+def run():
+
+    radio, mx, sensor = init_hardware()
 
     while True:
 
         # adjust display brighness acccording to ambient light
         lux = get_ambient_lux(sensor)
-        # print(f"Adjust to {lux}")
+        print(f"Adjust to {lux}")
 
+        # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
+        # This seems OK, but not very scientific
         max_brightness = lux / 1000
         if max_brightness > 1:
             max_brightness = 1
@@ -242,13 +253,17 @@ def test():
 
 # test()
 
+import traceback
+
 while True:
     try:
         run()
     except KeyboardInterrupt:
         break
-    except:
-        print("Got exception; going around again!")
+    except Exception as e:
+        print(f"Got exception {e}; going around again!")
+        traceback.print_exception(e)
+
 
 print("DONE!")
 # while True:

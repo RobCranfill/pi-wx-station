@@ -21,9 +21,11 @@ import adafruit_rfm69
 from adafruit_bme280 import basic as adafruit_bme280
 import neopixel
 
-# our libs
+# my code
 import anemom
 
+
+MAX_RFM_MSG_LEN = 60
 
 # Define some stuff
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
@@ -47,17 +49,17 @@ SEND_PERIOD = 4
 print(f"Sending data every {SEND_PERIOD} seconds")
 
 # Initialize RFM69 radio
-rfm69 = adafruit_rfm69.RFM69(
-    board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+rfm69 = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
 
-# Just for fun:
-print(f"RFM temp: {rfm69.temperature}C")
+# Just for fun
+print(f"  RFM temp: {rfm69.temperature}C")
 
 # The temperature/humidity/pressure sensor, if any.
 bme280 = None
 try:
     i2c = board.I2C()  # uses board.SCL and board.SDA
     bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
+    print("THP sensor OK!")
 except:
     print("No temp sensor? Continuing....")
 
@@ -93,21 +95,30 @@ while True:
     print(f"  {wind} MPH")
     dict['W'] = f"{wind:2.0f}"
 
-    msg = json.dumps(dict)
 
-    packet_count += 1
-    print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
-    try:
-        neo.fill(LED_SEND_COLOR)
-        rfm69.send(msg)
-        time.sleep(POST_SEND_LED_BLINK)
-    except:
-        print("*** Sending packet failed!")
-    finally:
-        neo.fill(0)
+    # Some status data
+    uptime = time.time()-time_start
+    dict['U'] = uptime
+    dict['C'] = packet_count
 
-    print(f" Uptime: {time.time()-time_start} seconds")
-    print(f" CPU: {microcontroller.cpu.temperature:1.0f} C; radio: {rfm69.temperature:1.0f} C")
+    # if we don't do this we exceed 60 chars!
+    msg = json.dumps(dict).replace(" ", "")
+    if len(msg) > MAX_RFM_MSG_LEN:
+        print("Data packet too large!")
+    else:
+        packet_count += 1
+        print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
+        try:
+            neo.fill(LED_SEND_COLOR)
+            rfm69.send(msg)
+            time.sleep(POST_SEND_LED_BLINK)
+        except Exception as e:
+            print(f"*** Sending packet failed: {e}")
+        finally:
+            neo.fill(0)
+
+    print(f" Uptime: {uptime} seconds")
+    print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {rfm69.temperature:1.0f}C")
     time.sleep(SEND_PERIOD)
 
 # we never exit the send loop, above. 
