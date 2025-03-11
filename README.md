@@ -7,27 +7,28 @@ I keep one running at the beach, and they keep dying due to
 the inclement weather; I'd like to be able to repair it rather
 than buy a new one every few years!
 
-The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
-
 
 # Method
 ## Hardware:
-  * Two Adafruit Feather RP2040 RFM69 microcontrollers (Adafruit part #5712)
+  * Two Adafruit Feather RP2040 microcontrollers with RFM69 Packet Radio  (Adafruit part #5712)
   * I2C-based temperature/pressure/humidity sensor
   * Anemometer: Part number RS-FSJT-NPN, from Amazon (or see below)
-  * Low priority:
+  * Low priority, not yet implemented:
+    * Rain guage
     * Wind vane (for wind direction)
     * Solar sensor
-  * Display is problematic - see below
-  * Antenna as needed; so far a quarter-wave wire antenna suffices!
-
+  * Display is problematic
+    * For now, using an Adafruit 16x8 1.2" LED Matrix (part #2042)
+  * Antenna as needed; so far a quarter-wave wire antenna suffices.
 
 ## Software
-  * CircuitPython, of course! 9.2.3 used far development.
+  * CircuitPython, of course! Latest version, 9.2.4, used for development.
   * Various Adafruit libraries; see 'requirements.txt' for output from 'circup'
 
-## HW Notes
+## To Do
+ * Better fade in/out on display
 
+## HW Notes
 | Anemometer | Signal | Feather |
 | ------ | ------ | ------ |
 | Brown  | VCC    | USB
@@ -37,13 +38,18 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 
 ## Thoughts
+### Alternative parts
+ Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
 
-Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
-
+### Display
+What sort of display? I want something readable from across the room, but not too distracting.
+For now I'm just using two 
 
 ## Reference
+ * The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
 
-### Same part?
+### Anemometer connections
+* Same anemomoter? Looks it.
 * https://www.renkeer.com/product/polycarbon-wind-speed-sensor/
 
 When using the pulse-type wind speed sensor, connect the black wire to the power supply and signal ground, the brown wire to the 5-30VDC power supply, the green wire to the pulse signal PNPOUT, and the blue wire to NPN (NPNR) OUT. That’s it! Wide voltage power input is 5~30V.

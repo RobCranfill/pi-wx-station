@@ -1,9 +1,10 @@
 """
     Pi-WX-Station
     Using a pair of Adafruit Feather RP2040 RFM69
-    sending side
-    w/ BME280 xducer
-    and an anemomter
+     w/ BME280 xducer and an anemomter
+    
+    This is the main code for the sending side.
+
     (c)2025 rob cranfill
 """
 
