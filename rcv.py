@@ -148,22 +148,29 @@ def run():
 
 
 def test():
-    """Test stuff - display timing, etc"""
-    mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
-    while True:
-        for s in ["64", " 0", "66", "12"]:
+    LEDMatrix.test()
 
-            mx.brightness = 0
+
+# def test():
+#     """Test stuff - display timing, etc"""
+#     mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
+#     while True:
+#         for s in ["64", " 0", "66", "12"]:
+
+#             mx.brightness = 0
             
-            mx.show_chars(s)
+#             mx.show_chars(s)
 
-            mx.fade_in(mx)
-            time.sleep(1)
-            mx.fade_out(mx)
+#             mx.fade_in(mx)
+#             time.sleep(1)
+#             mx.fade_out(mx)
 
-        mx.blank(mx)
+#         mx.blank(mx)
 
 
+# If we just import this module, this code runs.
+# Is this the best way to do this???
+#
 while True:
     try:
         run()

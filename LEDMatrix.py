@@ -15,15 +15,24 @@ DISPLAY_HEIGHT =  8
 DISPLAY_WIDTH  = 16
 
 
-# TODO: add methods to set/change these?
-FADE_STEP = 0.1
-FADE_SLEEP_TIME = 0.05
+FADE_STEPS = [0.0, .05, 0.1, .15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
 class LEDMatrix:
+    """Implements a quantized brightness, 0-15, with 0 being lowest - but not off!"""
+    def __init__(self, delay=0.2):
 
-    def __init__(self):
+        # TODO: catch exception?
         self._matrix = matrix.MatrixBackpack16x8(board.I2C())
+
+        self._fade_delay = delay
+
+        self.blank()
+
+
+    def set_fade_delay(self, delay):
+        self._fade_delay = delay
+
 
     # def fade_to(self, start, end, step, delay):
     #     b = start
@@ -32,32 +41,36 @@ class LEDMatrix:
     #         time.sleep(delay)
     #         b += step
 
-    def fade_in(self, max=1):
-        """Increase display brightness from zero up to max."""
-        b = 0
-        while b <= max:
-            self._matrix.brightness = b
-            # print(f"{b=}")
-            time.sleep(FADE_SLEEP_TIME)
-            b += FADE_STEP
-        self._matrix.brightness = max
-        time.sleep(FADE_SLEEP_TIME)
 
-    def fade_out(self, start=1):
-        """Reduce display brightness from current value down to zero."""
-        b = start
-        while b >= 0:
-            self._matrix.brightness = b
-            # print(f"{b=}")
-            time.sleep(FADE_SLEEP_TIME)
-            b -= FADE_STEP
-        self._matrix.brightness = 0
-        time.sleep(FADE_SLEEP_TIME)
+    def fade_in(self, max):
+        """Increase display brightness *from zero* up to indicated max. Does not pause at max brightness."""
+        for b in range(max+1):
+            self.set_brightness_int(b)
+            print(f"{b=}")
+            time.sleep(self._fade_delay)
+        time.sleep(self._fade_delay)
 
-    def set_brightness(self, b):
-        self._matrix.brightness = b
+    def fade_out(self, current):
+        """Decrease display brightness from indicated value down to 'zero' (which is not 'off'). Does not pause at 0 brightness."""
+        for b in range(current, -1, -1):
+            self.set_brightness_int(b)
+            print(f"{b=}")
+            time.sleep(self._fade_delay)
+        time.sleep(self._fade_delay)
+
+
+    # def set_brightness(self, b):
+    #     self._matrix.brightness = b
+
+    def set_brightness_int(self, i):
+        """Int value from 0 to 15"""
+        if i < 0 or i > 15:
+            print(f"Bad brightness value {i}")
+            return
+        self._matrix.brightness = i / 16        
 
     def blank(self):
+        """This erases the image data."""
         self._matrix.fill(0)
 
     def set_mode_indicator(self, is_temperature):
@@ -81,7 +94,7 @@ class LEDMatrix:
         """"Display 2 characters on the LED matrix."""
 
         if len(two_chars) != 2:
-            print("HEY!")
+            print("HEY DUMMY!")
             return
 
         # For the given string, create the big list of bit values (columns), left to right.
@@ -107,23 +120,50 @@ class LEDMatrix:
                 self._matrix[x, y] = rasters[x] & (1<<(DISPLAY_HEIGHT-y-1))
 
 
-# ##################################################
 
+# this is how the matrix library calculates brightness.
+def brightness(brightness: float) -> None:
+    if not 0.0 <= brightness <= 1.0:
+        raise ValueError(
+            "Brightness must be a decimal number in the range: 0.0-1.0"
+        )
+
+    # self._brightness = brightness
+    xbright = round(15 * brightness)
+    xbright = xbright & 0x0F
+    print(f"{brightness} -> {xbright=} = {hex(xbright)}")
+
+    # for index, _ in enumerate(self.i2c_device):
+    #     self._write_cmd(_HT16K33_CMD_BRIGHTNESS | xbright, index)
+
+
+
+# ##################################################
+import random
 def test():
     """Test stuff - display timing, etc"""
 
-    lm = LEDMatrix()
+    lm = LEDMatrix(delay=0.05)
 
+    # kinda like real life:
     while True:
         for s in [("88", True), (" 9", False), ("89", True), ("12", False)]:
 
-            lm.set_brightness(0)
-            time.sleep(.5)
+            # calculate a brightness 0-15
+            max = random.randint(0, 15)
+            print(f"setting max brightness to {max}...")
+
+            # lm.blank()
+            lm.set_brightness_int(0)
 
             lm.show_chars(s[0])
             lm.set_mode_indicator(s[1])
 
-            lm.fade_in()
+            lm.fade_in(max)
             time.sleep(2)
-            lm.fade_out()
+
+            # fade out doesn't fade to black!
+            lm.fade_out(max)
             lm.blank()
+            time.sleep(1)
+

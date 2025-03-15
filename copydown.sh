@@ -10,6 +10,7 @@ CP1=$CP'1'
 cp $CP1/rcv.py .
 cp $CP1/displayText.py .
 cp $CP1/led8x8Font.py .
+cp $CP1/LEDMatrix.py .
 
 git status
 
