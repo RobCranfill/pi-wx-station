@@ -45,24 +45,20 @@ class LEDMatrix:
     def fade_in(self, max):
         """Increase display brightness *from zero* up to indicated max. Does not pause at max brightness."""
         for b in range(max+1):
-            self.set_brightness_int(b)
-            print(f"{b=}")
+            self.set_brightness(b)
+            # print(f"{b=}")
             time.sleep(self._fade_delay)
         time.sleep(self._fade_delay)
 
     def fade_out(self, current):
         """Decrease display brightness from indicated value down to 'zero' (which is not 'off'). Does not pause at 0 brightness."""
         for b in range(current, -1, -1):
-            self.set_brightness_int(b)
-            print(f"{b=}")
+            self.set_brightness(b)
+            # print(f"{b=}")
             time.sleep(self._fade_delay)
         time.sleep(self._fade_delay)
 
-
-    # def set_brightness(self, b):
-    #     self._matrix.brightness = b
-
-    def set_brightness_int(self, i):
+    def set_brightness(self, i):
         """Int value from 0 to 15"""
         if i < 0 or i > 15:
             print(f"Bad brightness value {i}")
@@ -154,7 +150,7 @@ def test():
             print(f"setting max brightness to {max}...")
 
             # lm.blank()
-            lm.set_brightness_int(0)
+            lm.set_brightness(0)
 
             lm.show_chars(s[0])
             lm.set_mode_indicator(s[1])

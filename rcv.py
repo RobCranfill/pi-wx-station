@@ -88,7 +88,7 @@ def init_hardware():
     print(f"  {rfm.temperature=}")
     print()
 
-    leds = LEDMatrix()
+    leds = LEDMatrix.LEDMatrix()
 
     # Initialize VCNL4020
     sensor = None
@@ -101,6 +101,8 @@ def init_hardware():
 
 
 # ##################################################
+# TODO: catch keyboard (or other?) exception and blank the display? or display "??"
+#
 def run():
 
     radio, led_matrix, sensor = init_hardware()
@@ -108,20 +110,29 @@ def run():
     while True:
 
         # adjust display brighness acccording to ambient light
+        # First get a value 0 to 1.0
+        #
         lux = get_ambient_lux(sensor)
-        print(f"Adjust to {lux}")
 
         # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
         # This seems OK, but not very scientific
-        max_brightness = lux / 1000
+        # 1000 seems low. 4000?
+        max_brightness = lux / 4000
+
         if max_brightness > 1:
             max_brightness = 1
-        # print(f"Setting max brightness to {max_brightness}")
 
+        # Then scale to 0-15, the display's range.
+        max_brightness = int(15 * max_brightness)
+        print(f" Brightness: {lux=} -> {max_brightness=}")
+
+        # Get a radio packet.
+        #
         data = get_message(radio)
         print(f"{data=}")
         if data == None:
-            led_matrix.set_brightness(.5)
+            # TODO: no fade in/out?
+            led_matrix.set_brightness(max_brightness)
             led_matrix.show_chars("??")
         else:
             print("Beginning data display...")
@@ -131,7 +142,7 @@ def run():
                     val = " " + val
                 # print(f" {key} = '{val}'")
 
-                led_matrix.brightness = 0
+                # led_matrix.brightness = 0
                 print(f" display '{val}'")
                 led_matrix.show_chars(val)
 
@@ -140,32 +151,11 @@ def run():
                 else:
                     led_matrix.set_mode_indicator(False)
 
-                led_matrix.fade_in(max = max_brightness)
+                led_matrix.fade_in(max_brightness)
                 time.sleep(DISPLAY_TIMEOUT)
-                led_matrix.fade_out(start = max_brightness)
+                led_matrix.fade_out(max_brightness)
 
             print("End data display.\n")
-
-
-def test():
-    LEDMatrix.test()
-
-
-# def test():
-#     """Test stuff - display timing, etc"""
-#     mx = matrix.MatrixBackpack16x8(board.STEMMA_I2C())
-#     while True:
-#         for s in ["64", " 0", "66", "12"]:
-
-#             mx.brightness = 0
-            
-#             mx.show_chars(s)
-
-#             mx.fade_in(mx)
-#             time.sleep(1)
-#             mx.fade_out(mx)
-
-#         mx.blank(mx)
 
 
 # If we just import this module, this code runs.
@@ -184,3 +174,7 @@ while True:
 print("DONE!")
 # while True:
 #     pass
+
+
+def test():
+    LEDMatrix.test()
