@@ -8,10 +8,11 @@ the inclement weather; I'd like to be able to repair it rather
 than buy a new one every few years!
 
 
-# Method
-## Hardware:
-  * Two Adafruit Feather RP2040 microcontrollers with RFM69 Packet Radio  (Adafruit part #5712)
-  * I2C-based temperature/pressure/humidity sensor
+# Implementation
+## Hardware
+  * Two Adafruit Feather RP2040 microcontrollers with RFM69 Packet Radio (Adafruit part #5712)
+  * Adafruit BME280 I2C-based temperature/pressure/humidity sensor
+  * VCNL4020 I2C light sensor, Adafruit Product ID 5810
   * Anemometer: Part number RS-FSJT-NPN, from Amazon (or see below)
   * Low priority, not yet implemented:
     * Rain guage
@@ -43,14 +44,15 @@ than buy a new one every few years!
 
 ### Display
 What sort of display? I want something readable from across the room, but not too distracting.
-For now I'm just using two 
+For now I'm just using two 8x8 LED matrices, which are cheap-ish, readable from afar; not that cool looking tho!
+
 
 ## Reference
  * The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
 
 ### Anemometer connections
-* Same anemomoter? Looks it.
-* https://www.renkeer.com/product/polycarbon-wind-speed-sensor/
+* Is this ame anemomoter? Looks like it:
+** https://www.renkeer.com/product/polycarbon-wind-speed-sensor/
 
 When using the pulse-type wind speed sensor, connect the black wire to the power supply and signal ground, the brown wire to the 5-30VDC power supply, the green wire to the pulse signal PNPOUT, and the blue wire to NPN (NPNR) OUT. That’s it! Wide voltage power input is 5~30V.
 
