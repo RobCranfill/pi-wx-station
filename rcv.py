@@ -1,8 +1,11 @@
-# PiWX receiver code
-# 
-# Using an Adafruit 16x8 LED "backpack". For now, simplistic code - no object wrapper for display.
-# 
-# No scrolling - just fading in and out.
+"""
+    Pi-WX-Station
+    Using a pair of Adafruit Feather RP2040 RFM69
+    This is the receiver side
+    using an Adafruit 16x8 LED "backpack". 
+    (c)2025 rob cranfill
+    See https://github.com/RobCranfill/pi-wx-station
+"""
 
 # stdlibs
 import board
@@ -14,10 +17,10 @@ import time
 import traceback
 
 # adafruit libs
-import neopixel
 import adafruit_rfm69
 from adafruit_ht16k33 import matrix
 import adafruit_vcnl4020
+import neopixel
 
 # mine
 import LEDMatrix
@@ -40,25 +43,13 @@ LISTEN_TIMEOUT  = 8
 DISPLAY_TIMEOUT = 2
 
 
-def get_ambient_lux(light_sensor):
-
-    # print(f"Proximity is: {light_sensor.proximity}")
-
-    if light_sensor is None:
-        return 1000 # full brightness, sorta
-
-    lux = light_sensor.lux
-    # print(f"Ambient is: {lux}")
-    return lux
-
-
 def get_message(rfm):
     '''Return the dictionary of values received by the radio, or None'''
 
     # Look for a new packet - wait up to given timeout
     print("Listening...")
     packet = rfm.receive(timeout=LISTEN_TIMEOUT)
-    print("  Got a packet")
+    print(" Got a packet")
 
     # If no packet was received after the timeout then None is returned.
     result = None
@@ -81,6 +72,7 @@ def init_hardware():
     # Initialize RFM69 radio
     rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
 
+    # For fun
     print(f"  {rfm.bitrate=}")
     print(f"  {rfm.encryption_key=}")
     print(f"  {rfm.frequency_deviation=}")
@@ -94,10 +86,35 @@ def init_hardware():
     sensor = None
     try:
         vcln = adafruit_vcnl4020.Adafruit_VCNL4020(board.I2C())
+        vcln.lux_enabled = True
+        vcln.proximity_enabled = False
     except:
         print("No light sensor? Continuing....")
 
     return rfm, leds, vcln
+
+
+def get_brightness_value(light_sensor):
+    """Calculate a value 0-15 for display brighness acccording to ambient light."""
+
+    # TODO: Not sure what max possible lux is.
+    #
+    if light_sensor is None:
+        lux = 1000 # full brightness, sorta
+    else:
+        lux = light_sensor.lux
+
+    # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
+    # This seems OK, but not very scientific
+    # 1000 seems low. 4000?
+    scaled = lux / 4000
+    if scaled > 1:
+        scaled = 1
+
+    # Then scale to 0-15, the display's range.
+    scaled_int = int(15 * scaled)
+    # print(f" Brightness: {lux=} -> {scaled_int=}")
+    return scaled_int
 
 
 # ##################################################
@@ -107,35 +124,22 @@ def run():
 
     radio, led_matrix, sensor = init_hardware()
 
+    fade_in_and_out = False
+
     while True:
 
-        # adjust display brighness acccording to ambient light
-        # First get a value 0 to 1.0
-        #
-        lux = get_ambient_lux(sensor)
-
-        # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
-        # This seems OK, but not very scientific
-        # 1000 seems low. 4000?
-        max_brightness = lux / 4000
-
-        if max_brightness > 1:
-            max_brightness = 1
-
-        # Then scale to 0-15, the display's range.
-        max_brightness = int(15 * max_brightness)
-        print(f" Brightness: {lux=} -> {max_brightness=}")
+        max_brightness = get_brightness_value(sensor)
 
         # Get a radio packet.
         #
         data = get_message(radio)
-        print(f"{data=}")
+        print(f" {data=}")
         if data == None:
             # TODO: no fade in/out?
             led_matrix.set_brightness(max_brightness)
             led_matrix.show_chars("??")
         else:
-            print("Beginning data display...")
+            print(f"Beginning data display, {max_brightness=}...")
             for key in ["T", "W"]:
                 val = data[key]
                 if len(val) < 2:
@@ -151,9 +155,13 @@ def run():
                 else:
                     led_matrix.set_mode_indicator(False)
 
-                led_matrix.fade_in(max_brightness)
+                if fade_in_and_out:
+                    led_matrix.fade_in(max_brightness)
+
                 time.sleep(DISPLAY_TIMEOUT)
-                led_matrix.fade_out(max_brightness)
+                
+                if fade_in_and_out:
+                    led_matrix.fade_out(max_brightness)
 
             print("End data display.\n")
 
