@@ -1,10 +1,9 @@
 """
     Pi-WX-Station
     Using a pair of Adafruit Feather RP2040 RFM69
-     w/ BME280 xducer and an anemomter
-    
-    This is the main code for the sending side.
-
+    sending side
+    w/ BME280 xducer
+    and an anemomter
     (c)2025 rob cranfill
 """
 
@@ -30,9 +29,10 @@ MAX_RFM_MSG_LEN = 60
 
 # Define some stuff
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
-LED_SEND_COLOR = 0x0000FF
-
-POST_SEND_LED_BLINK = 0.1
+LED_PRE_SEND_COLOR  = 0x00FF00
+LED_PRE_SEND_BLINK  = 0.2
+LED_POST_SEND_COLOR = 0x0000FF
+LED_POST_SEND_BLINK = 0.05
 
 # Don't change this!
 RADIO_FREQ_MHZ = 915.0
@@ -92,7 +92,12 @@ while True:
         dict['H'] = "?"
         dict['P'] = "?"
 
+
+    neo.fill(LED_PRE_SEND_COLOR)
+    time.sleep(LED_POST_SEND_BLINK)
+    neo.fill(0)
     wind = anemometer.get_mph(COLLECTION_TIME)
+
     print(f"  {wind} MPH")
     dict['W'] = f"{wind:2.0f}"
 
@@ -110,9 +115,9 @@ while True:
         packet_count += 1
         print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
         try:
-            neo.fill(LED_SEND_COLOR)
+            neo.fill(LED_POST_SEND_COLOR)
             rfm69.send(msg)
-            time.sleep(POST_SEND_LED_BLINK)
+            time.sleep(LED_POST_SEND_BLINK)
         except Exception as e:
             print(f"*** Sending packet failed: {e}")
         finally:
