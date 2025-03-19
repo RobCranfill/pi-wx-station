@@ -24,23 +24,22 @@ class LEDMatrix:
 
         # TODO: catch exception?
         self._matrix = matrix.MatrixBackpack16x8(board.I2C())
-
         self._fade_delay = delay
+        self._wipe_mode = False
 
         self.blank()
 
+    def __del__(self):
+        """This doesn't seem to work the way I want."""
+        print("__del__!")
+        self.blank()
+
+    def set_wipe_mode(self, mode, delay):
+        self._wipe_mode = mode
+        self._wipe_delay = delay
 
     def set_fade_delay(self, delay):
         self._fade_delay = delay
-
-
-    # def fade_to(self, start, end, step, delay):
-    #     b = start
-    #     while b < end:
-    #         self._matrix.brightness = b
-    #         time.sleep(delay)
-    #         b += step
-
 
     def fade_in(self, max):
         """Increase display brightness *from zero* up to indicated max. Does not pause at max brightness."""
@@ -59,7 +58,7 @@ class LEDMatrix:
         time.sleep(self._fade_delay)
 
     def set_brightness(self, i):
-        """Int value from 0 to 15"""
+        """int value from 0 to 15"""
         if i < 0 or i > 15:
             print(f"Bad brightness value {i}")
             return
@@ -111,9 +110,12 @@ class LEDMatrix:
                 rasters.append(thisVR)
         # print(f"vraster (len {len(vrasters)}): {vrasters}")
 
+        delay = self._wipe_delay if self._wipe_mode else 0.0
+    
         for y in range(DISPLAY_HEIGHT):
             for x in range(len(rasters)):
                 self._matrix[x, y] = rasters[x] & (1<<(DISPLAY_HEIGHT-y-1))
+                time.sleep(delay)
 
 
 
@@ -163,3 +165,34 @@ def test():
             lm.blank()
             time.sleep(1)
 
+
+def test2():
+
+    # TODO: re-use the constructor delay param for wipe mode??
+
+    try:
+        lm = LEDMatrix(delay=0.05)
+        lm.set_wipe_mode(True, 0.005)
+
+        while True:
+            for s in [("78", True), (" 6", False), ("79", True), (" 4", False)]:
+
+                # calculate a brightness 0-15
+                max = random.randint(0, 15)
+                print(f"setting max brightness to {max}...")
+
+                # lm.blank()
+                lm.set_brightness(0)
+
+                lm.show_chars(s[0])
+                lm.set_mode_indicator(s[1])
+
+                time.sleep(2)
+    except:
+        print("exception")
+        
+        lm.blank()
+
+        # del lm
+        # print(f"deleted? no!")
+        
