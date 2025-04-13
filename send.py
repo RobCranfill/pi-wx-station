@@ -101,27 +101,42 @@ while True:
     print(f"  {wind} MPH")
     dict['W'] = f"{wind:2.0f}"
 
-
-    # Some status data
-    uptime = time.time()-time_start
-    dict['U'] = uptime
-    dict['C'] = packet_count
-
     # if we don't do this we exceed 60 chars!
     msg = json.dumps(dict).replace(" ", "")
-    if len(msg) > MAX_RFM_MSG_LEN:
-        print("Data packet too large!")
+
+
+    # FIXME
+    # augmented packet can be too large:
+        #   0.0 MPH
+        # Data packet too large!
+        #  Uptime: 1033139 seconds
+        #  CPU: 23C; radio: 19C
+
+    # Augment with some status data?
+    uptime = time.time() - time_start
+    dict['U'] = uptime
+
+    # packet count is kinda redundant w/ uptime
+    # dict['C'] = packet_count
+
+    msg_2 = json.dumps(dict).replace(" ", "")
+
+    if len(msg_2) > MAX_RFM_MSG_LEN:
+        print(f"Full data packet too large! {len(msg_2)=}")
+        print(f"{msg_2}")
     else:
-        packet_count += 1
-        print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
-        try:
-            neo.fill(LED_POST_SEND_COLOR)
-            rfm69.send(msg)
-            time.sleep(LED_POST_SEND_BLINK)
-        except Exception as e:
-            print(f"*** Sending packet failed: {e}")
-        finally:
-            neo.fill(0)
+        msg = msg_2
+
+    packet_count += 1
+    print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
+    try:
+        neo.fill(LED_POST_SEND_COLOR)
+        rfm69.send(msg)
+        time.sleep(LED_POST_SEND_BLINK)
+    except Exception as e:
+        print(f"*** Sending packet failed: {e}")
+    finally:
+        neo.fill(0)
 
     print(f" Uptime: {uptime} seconds")
     print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {rfm69.temperature:1.0f}C")
