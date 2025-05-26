@@ -20,10 +20,10 @@ LED_BLIP_COLOR = 0xFF0000
 
 
 class anemom:
-    """Class to encapsulate anemometer code."""
+    """Run the anemometer. Get 1-second sample count. Flash LED while collecting."""
 
     def __init__(self, input_pin, debug=False, neopixel=None):
-        """Debug flag will emit a bit of verbiage"""
+        """Debug flag will emit a bit of verbiage. Neopixel will blip on every count."""
 
         self._input_pin = input_pin
         self._debug = debug

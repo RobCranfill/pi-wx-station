@@ -5,6 +5,7 @@
     w/ BME280 xducer
     and an anemomter
     (c)2025 rob cranfill
+    see https://github.com/RobCranfill/pi-wx-station
 """
 
 # stdlibs
@@ -15,6 +16,8 @@ import os
 import time
 
 import microcontroller
+import watchdog
+from digitalio import DigitalInOut, Pull
 
 # adafruit libs
 import adafruit_rfm69
@@ -43,6 +46,33 @@ RESET = digitalio.DigitalInOut(board.RFM_RST)
 # Read 16-character encryption key.
 # TODO: can this fail?
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+
+
+def setup_watchdog():
+
+    print("Hold BUTTON to disable WDT")
+    time.sleep(2)
+
+    # configure onboard button as a pulled up input
+    button = DigitalInOut(board.BUTTON)
+    button.switch_to_input(Pull.UP)
+
+    wdt = microcontroller.watchdog
+
+    # Disable WDT by pressed onboard button at start up.
+    if button.value:  # if the button is NOT pressed then...
+        wdt.timeout = 8  # max time for RP2040
+        wdt.mode = watchdog.WatchDogMode.RESET  # RAISE or RESET
+        print("WatchDogMode enabled!")
+    else:  # if the button is pressed then...
+        print("WatchDogMode disabled")
+        wdt = None
+
+    return wdt
+
+
+wdt = setup_watchdog()
+
 
 # send delay in seconds 
 # TODO: how should this relate to rcv.LISTEN_TIMEOUT?
@@ -74,6 +104,9 @@ packet_count = 0
 time_start = time.time() # seconds
 
 while True:
+
+    if wdt is not None:
+        wdt.feed()  # feed the watchdog timer so it doesn't timeout
 
     dict = {}
 
@@ -143,4 +176,7 @@ while True:
     time.sleep(SEND_PERIOD)
 
 # we never exit the send loop, above. 
+
+
+
 
