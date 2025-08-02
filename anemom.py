@@ -3,12 +3,14 @@
 # Pulse-counting code as per 
 #  https://learn.adafruit.com/cooperative-multitasking-in-circuitpython-with-asyncio?view=all#communicating-between-tasks
 #
+
+import time
+
 import asyncio
 import board
-import digitalio
+# import digitalio
 import keypad
 import neopixel
-import time
 
 
 # Correction factor for count to MPH.
@@ -16,10 +18,10 @@ import time
 # Gotta figure this out!
 COUNT_TO_MPH = 2.0
 
-LED_BLIP_COLOR = 0xFF0000
+LED_BLIP_COLOR = 0xFF_00_00
+LED_OFF = 0x00_00_00
 
-
-class anemom:
+class Anemom:
     """Run the anemometer. Get 1-second sample count. Flash LED while collecting."""
 
     def __init__(self, input_pin, debug=False, neopixel=None):
@@ -28,6 +30,7 @@ class anemom:
         self._input_pin = input_pin
         self._debug = debug
         self._neopixel = neopixel
+        self._count = 0
 
         print(f"Creating anemom class. {COUNT_TO_MPH=}") if self._debug else True
 
@@ -44,27 +47,27 @@ class anemom:
 
             end_ticks = time.monotonic_ns() + seconds * 1000000000
             print(f" collect_count: {sample_time=}") if self._debug else True
-            print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
+            # print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
 
             with keypad.Keys((pin,), value_when_pressed=False) as keys:
                 while True:
                     event = keys.events.get()
                     if event:
                         if event.pressed:
-                            self.count_ += 1
-                            # print(f" pin went low: {self.count_=}")
-                            
+                            self._count += 1
+                            # print(f" pin went low: {self._count=}")
+
                             if self._neopixel is not None:
                                 self._neopixel.fill(LED_BLIP_COLOR)
 
                         elif event.released:
                             # print(" pin went high")
-                             if self._neopixel is not None:
-                                 self._neopixel.fill(0)
+                            if self._neopixel is not None:
+                                self._neopixel.fill(LED_OFF)
 
                     if time.monotonic_ns() > end_ticks:
                         # print(" catch_pin_transitions done!")
-                        print(f" catch_pin_transitions: {self.count_=}") if self._debug else True
+                        print(f" catch_pin_transitions: {self._count=}") if self._debug else True
                         return
                     await asyncio.sleep(0)
 
@@ -72,9 +75,9 @@ class anemom:
             interrupt_task = asyncio.create_task(catch_pin_transitions(self._input_pin, sample_time))
             await asyncio.gather(interrupt_task)
 
-        self.count_ = 0
+        self._count = 0
         asyncio.run(gather_events(sample_time))
-        return self.count_
+        return self._count
 
     def get_mph(self, sample_time):
         """This is the useful thing."""
@@ -82,10 +85,45 @@ class anemom:
         return count * COUNT_TO_MPH / sample_time
 
 
-def demo():
+    def get_raw(self, sample_time_seconds):
+        """Let's try this the naive way - why not? Return raw count of anemomter."""
+
+        end_ticks = time.monotonic_ns() + sample_time_seconds * 1000000000
+        print(f" get_raw: {sample_time_seconds=}") if self._debug else True
+        # print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
+
+        # FIXME: doesn't need to be an instance var?
+        self._count = 0
+
+        with keypad.Keys((self._input_pin,), value_when_pressed=False) as keys:
+            while True:
+                event = keys.events.get()
+                if event:
+                    if event.pressed:
+                        self._count += 1
+                        # print(f" pin went low: {self._count=}") if self._debug else True
+                        if self._neopixel is not None:
+                            self._neopixel.fill(LED_BLIP_COLOR)
+
+                    elif event.released:
+                        # print(" pin went high") if self._debug else True
+                        if self._neopixel is not None:
+                            self._neopixel.fill(LED_OFF)
+
+                if time.monotonic_ns() > end_ticks:
+                    # print(" catch_pin_transitions done!")
+                    print(f" catch_pin_transitions: {self._count=}") if self._debug else True
+                    return self._count
+    
+                # await asyncio.sleep(0)
+
+                time.sleep(0.01) # for why?
+
+
+def test():
     """Being an example of using this class."""
 
-    anemometer = anemom(board.D12, debug=False)
+    anemometer = Anemom(board.D12, debug=True)
 
     collect_time = 1 # seconds
     busy_time = 3 # seconds
@@ -93,9 +131,12 @@ def demo():
     while True:
         print(f"Collecting for {collect_time} seconds...")
 
-        print(f" {anemometer.get_mph(collect_time)}")
+        # MPH?
+        # print(f" {anemometer.get_mph(collect_time)=}")
+
+        # raw?
+        print(f" {anemometer.get_raw(collect_time)=}")
 
         # to simulate the user code doing something else for a while....
         print(f"Pausing {busy_time} seconds...")
         time.sleep(busy_time)
-

@@ -32,9 +32,9 @@ MAX_RFM_MSG_LEN = 60
 
 # Define some stuff
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
-LED_PRE_SEND_COLOR  = 0x00FF00
+LED_PRE_SEND_COLOR  = 0x00_FF_00
 LED_PRE_SEND_BLINK  = 0.2
-LED_POST_SEND_COLOR = 0x0000FF
+LED_POST_SEND_COLOR = 0x00_00_FF
 LED_POST_SEND_BLINK = 0.05
 
 # Don't change this!
@@ -63,16 +63,26 @@ def setup_watchdog():
     if button.value:  # if the button is NOT pressed then...
         wdt.timeout = 8  # max time for RP2040
         wdt.mode = watchdog.WatchDogMode.RESET  # RAISE or RESET
-        print("WatchDogMode enabled!")
+        print("WatchDogMode enabled!\n")
     else:  # if the button is pressed then...
-        print("WatchDogMode disabled")
+        print("WatchDogMode disabled\n")
         wdt = None
 
     return wdt
 
 
-wdt = setup_watchdog()
+def show_rfm_info(rfm):
+    # Just for fun
+    print("-------------- RFM Radio info --------------")
+    print(f"temperature: {rfm.temperature}C")
+    print(f"{rfm.ack_delay=}")
+    print(f"{rfm.__dict__=}")    
+    print("--------------------------------------------")
 
+
+# wdt = setup_watchdog()
+wdt = None
+print("\n****WATCHDOG MODE OVERRIDDEN****\n")
 
 # send delay in seconds 
 # TODO: how should this relate to rcv.LISTEN_TIMEOUT?
@@ -82,15 +92,15 @@ print(f"Sending data every {SEND_PERIOD} seconds")
 # Initialize RFM69 radio
 rfm69 = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
 
-# Just for fun
-print(f"  RFM temp: {rfm69.temperature}C")
+show_rfm_info(rfm69)
+
 
 # The temperature/humidity/pressure sensor, if any.
 bme280 = None
 try:
     i2c = board.I2C()  # uses board.SCL and board.SDA
     bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-    print("THP sensor OK!")
+    print("Temperature/pressure/humidity sensor OK!")
 except:
     print("No temp sensor? Continuing....")
 
@@ -98,7 +108,10 @@ except:
 neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
 neo.fill(0)
 
+
+# Our anemometer interface class.
 anemometer = anemom.anemom(board.D12, debug=False, neopixel=neo)
+
 
 packet_count = 0
 time_start = time.time() # seconds
@@ -135,7 +148,7 @@ while True:
     dict['W'] = f"{wind:2.0f}"
 
     # if we don't do this we exceed 60 chars!
-    msg = json.dumps(dict).replace(" ", "")
+    msg_to_send = json.dumps(dict).replace(" ", "")
 
 
     # FIXME
@@ -145,26 +158,29 @@ while True:
         #  Uptime: 1033139 seconds
         #  CPU: 23C; radio: 19C
 
+
     # Augment with some status data?
+    # TODO: also send CPU temperature? (that is, device temp)
+
     uptime = time.time() - time_start
     dict['U'] = uptime
 
-    # packet count is kinda redundant w/ uptime
+    # packet count is kinda redundant w/ uptime, so removed.
     # dict['C'] = packet_count
 
-    msg_2 = json.dumps(dict).replace(" ", "")
+    msg_augmented = json.dumps(dict).replace(" ", "")
 
-    if len(msg_2) > MAX_RFM_MSG_LEN:
-        print(f"Full data packet too large! {len(msg_2)=}")
-        print(f"{msg_2}")
+    if len(msg_augmented) <= MAX_RFM_MSG_LEN:
+        msg_to_send = msg_augmented
     else:
-        msg = msg_2
+        print(f"Full data packet too large! {len(msg_augmented)=}")
+        print(f"{msg_augmented}")
 
     packet_count += 1
-    print(f"Sending packet #{packet_count}, {len(msg)} chars: {msg}")
+    print(f"Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
     try:
         neo.fill(LED_POST_SEND_COLOR)
-        rfm69.send(msg)
+        rfm69.send(msg_to_send)
         time.sleep(LED_POST_SEND_BLINK)
     except Exception as e:
         print(f"*** Sending packet failed: {e}")
@@ -175,8 +191,4 @@ while True:
     print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {rfm69.temperature:1.0f}C")
     time.sleep(SEND_PERIOD)
 
-# we never exit the send loop, above. 
-
-
-
-
+# we never exit the send loop, above.

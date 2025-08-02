@@ -150,6 +150,8 @@ def run():
                 print(f" display '{val}'")
                 led_matrix.show_chars(val)
 
+                # Must come after char display or it gets stepped on.
+                # FIXME?
                 if key == "T":
                     led_matrix.set_mode_indicator(True)
                 else:
@@ -157,6 +159,8 @@ def run():
 
                 if fade_in_and_out:
                     led_matrix.fade_in(max_brightness)
+                else:
+                    led_matrix.set_brightness(max_brightness)
 
                 time.sleep(DISPLAY_TIMEOUT)
                 
