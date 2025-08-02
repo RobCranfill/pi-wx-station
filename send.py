@@ -150,11 +150,11 @@ while True:
     # calculate MPH on this side.
     #
     # wind = anemometer.get_mph(COLLECTION_TIME)
-    wind_raw = anemometer.get_raw(COLLECTION_TIME)
+    anemom_count = anemometer.get_raw(COLLECTION_TIME)
 
     # Send the raw anemometer count, to be intrepreted by the rcv side.
-    print(f"  {wind_raw} MPH")
-    dict['C'] = f"{wind_raw:2.0f}"
+    print(f"  {anemom_count=}")
+    dict['C'] = f"{anemom_count:2.0f}"
 
     # if we don't do this we exceed 60 chars!
     msg_to_send = json.dumps(dict).replace(" ", "")
