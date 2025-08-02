@@ -1,9 +1,10 @@
 """
     Pi-WX-Station
     Using a pair of Adafruit Feather RP2040 RFM69
-    sending side
-    w/ BME280 xducer
-    and an anemomter
+    w/ BME280 xducer and an anemomter.
+
+    Sending side.
+
     (c)2025 rob cranfill
     see https://github.com/RobCranfill/pi-wx-station
 """
@@ -33,9 +34,11 @@ MAX_RFM_MSG_LEN = 60
 # Define some stuff
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
 LED_PRE_SEND_COLOR  = 0x00_FF_00
-LED_PRE_SEND_BLINK  = 0.2
+LED_PRE_SEND_BLINK  = 0.5
 LED_POST_SEND_COLOR = 0x00_00_FF
-LED_POST_SEND_BLINK = 0.05
+LED_DATA_SEND_COLOR = 0xFF_00_00
+LED_POST_SEND_BLINK = 0.5
+LED_COLOR_OFF = 0x00_00_00
 
 # Don't change this!
 RADIO_FREQ_MHZ = 915.0
@@ -110,7 +113,7 @@ neo.fill(0)
 
 
 # Our anemometer interface class.
-anemometer = anemom.anemom(board.D12, debug=False, neopixel=neo)
+anemometer = anemom.Anemom(board.D12, LED_DATA_SEND_COLOR, debug=False, neopixel=neo)
 
 
 packet_count = 0
@@ -138,14 +141,20 @@ while True:
         dict['H'] = "?"
         dict['P'] = "?"
 
-
+    # Before sending the packet, blink the LED.
     neo.fill(LED_PRE_SEND_COLOR)
     time.sleep(LED_POST_SEND_BLINK)
-    neo.fill(0)
-    wind = anemometer.get_mph(COLLECTION_TIME)
+    neo.fill(LED_COLOR_OFF)
 
-    print(f"  {wind} MPH")
-    dict['W'] = f"{wind:2.0f}"
+    # Now just get the raw count from the anemomoter;
+    # calculate MPH on this side.
+    #
+    # wind = anemometer.get_mph(COLLECTION_TIME)
+    wind_raw = anemometer.get_raw(COLLECTION_TIME)
+
+    # Send the raw anemometer count, to be intrepreted by the rcv side.
+    print(f"  {wind_raw} MPH")
+    dict['C'] = f"{wind_raw:2.0f}"
 
     # if we don't do this we exceed 60 chars!
     msg_to_send = json.dumps(dict).replace(" ", "")
@@ -179,13 +188,14 @@ while True:
     packet_count += 1
     print(f"Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
     try:
+
         neo.fill(LED_POST_SEND_COLOR)
         rfm69.send(msg_to_send)
         time.sleep(LED_POST_SEND_BLINK)
-    except Exception as e:
-        print(f"*** Sending packet failed: {e}")
+    except AssertionError:
+        print(f"*** Sending packet failed: {AssertionError}")
     finally:
-        neo.fill(0)
+        neo.fill(LED_COLOR_OFF)
 
     print(f" Uptime: {uptime} seconds")
     print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {rfm69.temperature:1.0f}C")

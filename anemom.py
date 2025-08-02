@@ -18,16 +18,17 @@ import neopixel
 # Gotta figure this out!
 COUNT_TO_MPH = 2.0
 
-LED_BLIP_COLOR = 0xFF_00_00
 LED_OFF = 0x00_00_00
+
 
 class Anemom:
     """Run the anemometer. Get 1-second sample count. Flash LED while collecting."""
 
-    def __init__(self, input_pin, debug=False, neopixel=None):
+    def __init__(self, input_pin, send_color, debug=False, neopixel=None):
         """Debug flag will emit a bit of verbiage. Neopixel will blip on every count."""
 
         self._input_pin = input_pin
+        self._send_color = send_color
         self._debug = debug
         self._neopixel = neopixel
         self._count = 0
@@ -38,6 +39,43 @@ class Anemom:
         #
         # input = digitalio.DigitalInOut(input_pin)
         # input.direction = digitalio.Direction.INPUT
+
+
+    def get_raw(self, sample_time_seconds):
+        """Let's try this the naive way - why not? Return raw count of anemomter."""
+
+        end_ticks = time.monotonic_ns() + sample_time_seconds * 1000000000
+        print(f" get_raw: {sample_time_seconds=}") if self._debug else True
+        # print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
+
+        # Doens't need to be a class/instance var
+        count = 0
+
+        with keypad.Keys((self._input_pin,), value_when_pressed=False) as keys:
+            while True:
+                event = keys.events.get()
+                if event:
+                    if event.pressed:
+                        count += 1
+                        # print(f" pin went low: {count=}") if self._debug else True
+                        if self._neopixel is not None:
+                            self._neopixel.fill(self._send_color)
+
+                    elif event.released:
+                        # print(" pin went high") if self._debug else True
+                        if self._neopixel is not None:
+                            self._neopixel.fill(LED_OFF)
+
+                if time.monotonic_ns() > end_ticks:
+                    # print(" catch_pin_transitions done!")
+                    print(f" catch_pin_transitions: {count=}") if self._debug else True
+                    return count
+    
+                time.sleep(0.01) # for why? lessen CPU usage?
+
+    ########################################################
+    # I think all the following code is going to go away.
+    # Too complicated, for no benefit, I think.
 
     def collect_count(self, sample_time):
         """Collect pin transitions for the indicated period (seconds)"""
@@ -58,7 +96,7 @@ class Anemom:
                             # print(f" pin went low: {self._count=}")
 
                             if self._neopixel is not None:
-                                self._neopixel.fill(LED_BLIP_COLOR)
+                                self._neopixel.fill(self._send_color)
 
                         elif event.released:
                             # print(" pin went high")
@@ -84,46 +122,14 @@ class Anemom:
         count = self.collect_count(sample_time)
         return count * COUNT_TO_MPH / sample_time
 
-
-    def get_raw(self, sample_time_seconds):
-        """Let's try this the naive way - why not? Return raw count of anemomter."""
-
-        end_ticks = time.monotonic_ns() + sample_time_seconds * 1000000000
-        print(f" get_raw: {sample_time_seconds=}") if self._debug else True
-        # print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
-
-        # FIXME: doesn't need to be an instance var?
-        self._count = 0
-
-        with keypad.Keys((self._input_pin,), value_when_pressed=False) as keys:
-            while True:
-                event = keys.events.get()
-                if event:
-                    if event.pressed:
-                        self._count += 1
-                        # print(f" pin went low: {self._count=}") if self._debug else True
-                        if self._neopixel is not None:
-                            self._neopixel.fill(LED_BLIP_COLOR)
-
-                    elif event.released:
-                        # print(" pin went high") if self._debug else True
-                        if self._neopixel is not None:
-                            self._neopixel.fill(LED_OFF)
-
-                if time.monotonic_ns() > end_ticks:
-                    # print(" catch_pin_transitions done!")
-                    print(f" catch_pin_transitions: {self._count=}") if self._debug else True
-                    return self._count
-    
-                # await asyncio.sleep(0)
-
-                time.sleep(0.01) # for why?
+    ########################################################
+    # End of doomed code.
 
 
 def test():
     """Being an example of using this class."""
 
-    anemometer = Anemom(board.D12, debug=True)
+    anemometer = Anemom(board.D12, 0xFF0000, debug=True)
 
     collect_time = 1 # seconds
     busy_time = 3 # seconds
