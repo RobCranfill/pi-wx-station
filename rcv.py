@@ -58,11 +58,11 @@ def get_message(rfm):
     else:
         pstr = packet.decode('utf8')
         # print(f"Rcvd: '{pstr}'")
-        dict = json.loads(pstr)
+        data_dict = json.loads(pstr)
 
-        # result = dict["T"] + "F " + dict["H"] + "%"
+        # result = dict["T"] + "F " + data_dict["H"] + "%"
         # print(f"  display: '{result}'")
-        result = dict
+        result = data_dict
 
     return result
 
@@ -116,6 +116,13 @@ def get_brightness_value(light_sensor):
     # print(f" Brightness: {lux=} -> {scaled_int=}")
     return scaled_int
 
+def count_to_mph(count):
+    """Return integer MPH as a string"""
+
+    mph = int(count / 15)
+    print(f" count_to_mph: {count=} -> {mph=}")
+    return str(mph)
+
 
 # ##################################################
 # TODO: catch keyboard (or other?) exception and blank the display? or display "??"
@@ -140,15 +147,20 @@ def run():
             led_matrix.show_chars("??")
         else:
             print(f"Beginning data display, {max_brightness=}...")
-            for key in ["T", "W"]:
-                val = data[key]
-                if len(val) < 2:
-                    val = " " + val
-                # print(f" {key} = '{val}'")
+            for key in ["T", "C"]:
+                display_val = data[key]
+
+                # print(f" {key} = '{display_val}'")
 
                 # led_matrix.brightness = 0
-                print(f" display '{val}'")
-                led_matrix.show_chars(val)
+                print(f" display '{display_val}'")
+
+                if key == "C":
+                    display_val = count_to_mph(int(display_val))
+
+                if len(display_val) < 2:
+                    display_val = " " + display_val
+                led_matrix.show_chars(display_val)
 
                 # Must come after char display or it gets stepped on.
                 # FIXME?

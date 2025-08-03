@@ -77,9 +77,9 @@ class LEDMatrix:
 
         # vertical line to left? that's better
         if is_temperature:
-            ys = [0,1,2,3]
-        else:
             ys = [4,5,6,7]
+        else:
+            ys = [0,1,2,3]
 
         for y in ys:
             self._matrix[0, y] = 1
@@ -89,7 +89,7 @@ class LEDMatrix:
         """"Display 2 characters on the LED matrix."""
 
         if len(two_chars) != 2:
-            print("HEY DUMMY!")
+            print(f" *** Error: {__name__}.show_chars: Got '{two_chars}'")
             return
 
         # For the given string, create the big list of bit values (columns), left to right.
@@ -182,7 +182,7 @@ def test2():
                 print(f"setting max brightness to {max}...")
 
                 # lm.blank()
-                lm.set_brightness(0)
+                lm.set_brightness(max)
 
                 lm.show_chars(s[0])
                 lm.set_mode_indicator(s[1])

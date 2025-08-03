@@ -9,6 +9,8 @@
     see https://github.com/RobCranfill/pi-wx-station
 """
 
+# region imports
+
 # stdlibs
 import board
 import digitalio
@@ -28,7 +30,9 @@ import neopixel
 # my code
 import anemom
 
+# endregion imports
 
+# region defines
 MAX_RFM_MSG_LEN = 60
 
 # Define some stuff
@@ -50,7 +54,9 @@ RESET = digitalio.DigitalInOut(board.RFM_RST)
 # TODO: can this fail?
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
+# endregion defines
 
+# region functions
 def setup_watchdog():
 
     print("Hold BUTTON to disable WDT")
@@ -75,14 +81,19 @@ def setup_watchdog():
 
 
 def show_rfm_info(rfm):
-    # Just for fun
+    """ Just for fun """
     print("-------------- RFM Radio info --------------")
     print(f"temperature: {rfm.temperature}C")
     print(f"{rfm.ack_delay=}")
-    print(f"{rfm.__dict__=}")    
+    print(f"{rfm.__dict__=}")
     print("--------------------------------------------")
 
+# endregion functions
 
+
+# region main
+
+# A watchdog timer doesn't seem to be as useful as it sounded. :-/
 # wdt = setup_watchdog()
 wdt = None
 print("\n****WATCHDOG MODE OVERRIDDEN****\n")
@@ -124,7 +135,7 @@ while True:
     if wdt is not None:
         wdt.feed()  # feed the watchdog timer so it doesn't timeout
 
-    dict = {}
+    data_dict = {}
 
     if bme280 is not None:
         temp = bme280.temperature
@@ -133,13 +144,13 @@ while True:
 
         t_F = (temp * 9 / 5) + 32
 
-        dict['T'] = f"{t_F:2.0f}"
-        dict['H'] = f"{hum:2.0f}"
-        dict['P'] = f"{pres:2.0f}"
+        data_dict['T'] = f"{t_F:2.0f}"
+        data_dict['H'] = f"{hum:2.0f}"
+        data_dict['P'] = f"{pres:2.0f}"
     else:
-        dict['T'] = "?"
-        dict['H'] = "?"
-        dict['P'] = "?"
+        data_dict['T'] = "?"
+        data_dict['H'] = "?"
+        data_dict['P'] = "?"
 
     # Before sending the packet, blink the LED.
     neo.fill(LED_PRE_SEND_COLOR)
@@ -154,10 +165,10 @@ while True:
 
     # Send the raw anemometer count, to be intrepreted by the rcv side.
     print(f"  {anemom_count=}")
-    dict['C'] = f"{anemom_count:2.0f}"
+    data_dict['C'] = f"{anemom_count:2.0f}"
 
     # if we don't do this we exceed 60 chars!
-    msg_to_send = json.dumps(dict).replace(" ", "")
+    msg_to_send = json.dumps(data_dict).replace(" ", "")
 
 
     # FIXME
@@ -172,12 +183,12 @@ while True:
     # TODO: also send CPU temperature? (that is, device temp)
 
     uptime = time.time() - time_start
-    dict['U'] = uptime
+    data_dict['U'] = uptime
 
     # packet count is kinda redundant w/ uptime, so removed.
-    # dict['C'] = packet_count
+    # data_dict['C'] = packet_count
 
-    msg_augmented = json.dumps(dict).replace(" ", "")
+    msg_augmented = json.dumps(data_dict).replace(" ", "")
 
     if len(msg_augmented) <= MAX_RFM_MSG_LEN:
         msg_to_send = msg_augmented
@@ -192,6 +203,7 @@ while True:
         neo.fill(LED_POST_SEND_COLOR)
         rfm69.send(msg_to_send)
         time.sleep(LED_POST_SEND_BLINK)
+    
     except AssertionError:
         print(f"*** Sending packet failed: {AssertionError}")
     finally:
@@ -201,4 +213,7 @@ while True:
     print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {rfm69.temperature:1.0f}C")
     time.sleep(SEND_PERIOD)
 
-# we never exit the send loop, above.
+    # we never exit the send loop.
+
+# endregion main
+
