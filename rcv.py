@@ -5,6 +5,8 @@
     using an Adafruit 16x8 LED "backpack". 
     (c)2025 rob cranfill
     See https://github.com/RobCranfill/pi-wx-station
+
+    TODO: use left-side pixels to show ... something. data packet reception?
 """
 
 # stdlibs
@@ -42,20 +44,41 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 LISTEN_TIMEOUT  = 8
 DISPLAY_TIMEOUT = 2
 
+# we will re-use old data for this many missed packets
+MAX_MISSED_PACKETS = 6
+
+# we will display data elements from this is we get more than MAX_MISSED_PACKETS
+NO_DATA_PACKET = {}
+NO_DATA_PACKET['T'] = 'T?'
+NO_DATA_PACKET['C'] = 'W?'
+
+
+def show_radio_status(radio):
+    """For fun. But also could use to show local temp - if it worked!"""
+
+    print("RFM69 status:")
+    print(f"  {radio.bitrate=}")
+    print(f"  {radio.encryption_key=}")
+    print(f"  {radio.frequency_deviation=}")
+    print(f"  {radio.rssi=}")
+    print(f"  {radio.temperature=}C, {c_to_f(radio.temperature)}F")
+    print()
+
 
 def get_message(rfm):
     '''Return the dictionary of values received by the radio, or None'''
 
     # Look for a new packet - wait up to given timeout
-    print("Listening...")
+    print("\nListening...")
     packet = rfm.receive(timeout=LISTEN_TIMEOUT)
-    print(" Got a packet")
+    # print(" Got a packet?")
 
     # If no packet was received after the timeout then None is returned.
     result = None
     if packet is None:
         print("No packet?")
     else:
+        print(" Got a packet")
         pstr = packet.decode('utf8')
         # print(f"Rcvd: '{pstr}'")
         data_dict = json.loads(pstr)
@@ -64,6 +87,8 @@ def get_message(rfm):
         # print(f"  display: '{result}'")
         result = data_dict
 
+    # also get local temp?
+
     return result
 
 
@@ -71,19 +96,12 @@ def init_hardware():
 
     # Initialize RFM69 radio
     rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
-
-    # For fun
-    print(f"  {rfm.bitrate=}")
-    print(f"  {rfm.encryption_key=}")
-    print(f"  {rfm.frequency_deviation=}")
-    print(f"  {rfm.rssi=}")
-    print(f"  {rfm.temperature=}")
-    print()
+    # show_radio_status(rfm)
 
     leds = LEDMatrix.LEDMatrix()
 
     # Initialize VCNL4020
-    sensor = None
+    vcln = None
     try:
         vcln = adafruit_vcnl4020.Adafruit_VCNL4020(board.I2C())
         vcln.lux_enabled = True
@@ -123,17 +141,36 @@ def count_to_mph(count):
     print(f" count_to_mph: {count=} -> {mph=}")
     return str(mph)
 
+def c_to_f(c):
+    """Return farenheit from celsius"""
+    return (c*9/5) + 32
 
 # ##################################################
 # TODO: catch keyboard (or other?) exception and blank the display? or display "??"
 #
 def run():
 
-    radio, led_matrix, sensor = init_hardware()
+    last_good_packet = NO_DATA_PACKET
+    missed_packets = 0
 
+    # Doesn't work well:
     fade_in_and_out = False
 
+    radio, led_matrix, sensor = init_hardware()
+
+    # works
+    # for i in range(10):
+    #     show_radio_status(radio)
+    #     time.sleep(1)
+
     while True:
+
+        # DOESN'T WORK THE SECOND TIME AROUND!!!
+        # print("Testing radio temperature....")
+        # for i in range(1, 4):
+        #     print(f"Test #{i}....")
+        #     show_radio_status(radio)
+        #     time.sleep(1)
 
         max_brightness = get_brightness_value(sensor)
 
@@ -141,45 +178,62 @@ def run():
         #
         data = get_message(radio)
         print(f" {data=}")
-        if data == None:
-            # TODO: no fade in/out?
-            led_matrix.set_brightness(max_brightness)
-            led_matrix.show_chars("??")
+
+        if data is None: # or random.randint(0, 10) > 2:
+            missed_packets += 1
+            print(f"** missing packet #{missed_packets}; ")
+
+            if missed_packets < MAX_MISSED_PACKETS:
+                data = last_good_packet
+            else:
+                data = NO_DATA_PACKET
+
         else:
-            print(f"Beginning data display, {max_brightness=}...")
-            for key in ["T", "C"]:
-                display_val = data[key]
+            last_good_packet = data
+            missed_packets = 0
+            led_matrix.set_aux_indicator(0)
 
-                # print(f" {key} = '{display_val}'")
 
-                # led_matrix.brightness = 0
-                print(f" display '{display_val}'")
+        print(f"Beginning data display, {max_brightness=}...")
 
-                if key == "C":
-                    display_val = count_to_mph(int(display_val))
+        # Values to display:
+        #
+        # for key in ["T", "C"]:
+        for key in ["T"]:
+            display_val = data[key]
+            if len(display_val) < 2:
+                display_val = " " + display_val
+            print(f" {key} = '{display_val}'")
 
-                if len(display_val) < 2:
-                    display_val = " " + display_val
-                led_matrix.show_chars(display_val)
+            if key == "C":
+                display_val = count_to_mph(int(display_val))
+                print(f"  -> {display_val} MPH")
 
-                # Must come after char display or it gets stepped on.
-                # FIXME?
-                if key == "T":
-                    led_matrix.set_mode_indicator(True)
-                else:
-                    led_matrix.set_mode_indicator(False)
 
-                if fade_in_and_out:
-                    led_matrix.fade_in(max_brightness)
-                else:
-                    led_matrix.set_brightness(max_brightness)
+            # WTF? locks up!
+            # print(f" LOCAL TEMP {radio.temperature=}")
 
-                time.sleep(DISPLAY_TIMEOUT)
-                
-                if fade_in_and_out:
-                    led_matrix.fade_out(max_brightness)
+            led_matrix.show_chars(display_val)
 
-            print("End data display.\n")
+            ## Must come after char display or it gets stepped on.
+            # if key == "T":
+            #     led_matrix.set_mode_indicator(True)
+            # else:
+            #     led_matrix.set_mode_indicator(False)
+            led_matrix.set_aux_indicator_h(missed_packets)
+
+
+            if fade_in_and_out:
+                led_matrix.fade_in(max_brightness)
+            else:
+                led_matrix.set_brightness(max_brightness)
+
+            time.sleep(DISPLAY_TIMEOUT)
+            
+            if fade_in_and_out:
+                led_matrix.fade_out(max_brightness)
+
+# end run method
 
 
 # If we just import this module, this code runs.
