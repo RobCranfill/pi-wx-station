@@ -86,13 +86,13 @@ class LEDMatrix:
 
 
     def set_aux_indicator(self, level):
-        """Status indicator along left edge."""
-        for y in range(level):
+        """Status indicator along left edge, from bottom up."""
+        for y in range(min(level, 8)):
             self._matrix[0, 7-y] = 1
 
     def set_aux_indicator_h(self, level):
-        """Status indicator along the bottom edge."""
-        for x in range(level):
+        """Status indicator along the bottom edge, from the left."""
+        for x in range(min(level, 16)):
             self._matrix[x, 7] = 1
 
 
