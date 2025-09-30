@@ -49,6 +49,8 @@ RADIO_FREQ_MHZ = 915.0
 CS = digitalio.DigitalInOut(board.RFM_CS)
 RESET = digitalio.DigitalInOut(board.RFM_RST)
 
+# just test the sensors and data packing?
+ACTUALLY_SEND = True
 
 # Read 16-character encryption key.
 # TODO: can this fail?
@@ -104,9 +106,16 @@ SEND_PERIOD = 4
 print(f"Sending data every {SEND_PERIOD} seconds")
 
 # Initialize RFM69 radio
-rfm69 = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
 
-show_rfm_info(rfm69)
+radio = None # why is the board getting corrupted so often?
+if ACTUALLY_SEND:
+    radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+
+if radio is None:
+    print("\n\n****************** NOT USING RADIO!!!!! \n\n")
+
+if radio is not None:
+    show_rfm_info(radio)
 
 
 # The temperature/humidity/pressure sensor, if any.
@@ -197,11 +206,12 @@ while True:
         print(f"{msg_augmented}")
 
     packet_count += 1
-    print(f"Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
+    print(f"(maybe) Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
     try:
 
         neo.fill(LED_POST_SEND_COLOR)
-        rfm69.send(msg_to_send)
+        if radio is not None:
+            radio.send(msg_to_send)
         time.sleep(LED_POST_SEND_BLINK)
     
     except AssertionError:
@@ -210,7 +220,8 @@ while True:
         neo.fill(LED_COLOR_OFF)
 
     print(f" Uptime: {uptime} seconds")
-    print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {rfm69.temperature:1.0f}C")
+    if radio is not None:
+        print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {radio.temperature:1.0f}C")
     time.sleep(SEND_PERIOD)
 
     # we never exit the send loop.
