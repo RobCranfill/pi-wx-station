@@ -24,7 +24,7 @@ from digitalio import DigitalInOut, Pull
 
 # adafruit libs
 import adafruit_rfm69
-from adafruit_bme280 import basic as adafruit_bme280
+# from adafruit_bme280 import basic as adafruit_bme280
 import neopixel
 
 # my code
@@ -87,7 +87,7 @@ def show_rfm_info(rfm):
     print("-------------- RFM Radio info --------------")
     print(f"temperature: {rfm.temperature}C")
     print(f"{rfm.ack_delay=}")
-    print(f"{rfm.__dict__=}")
+    # print(f"{rfm.__dict__=}")
     print("--------------------------------------------")
 
 # endregion functions
@@ -110,22 +110,25 @@ print(f"Sending data every {SEND_PERIOD} seconds")
 radio = None # why is the board getting corrupted so often?
 if ACTUALLY_SEND:
     radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+    show_rfm_info(radio)
 
 if radio is None:
     print("\n\n****************** NOT USING RADIO!!!!! \n\n")
 
-if radio is not None:
-    show_rfm_info(radio)
 
+# # The temperature/humidity/pressure sensor, if any.
+# bme280 = None
+# try:
+#     i2c = board.I2C()  # uses board.SCL and board.SDA
+#     bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
+#     print("Temperature/pressure/humidity sensor OK!")
+# except:
+#     print("No temp sensor? Continuing....")
 
-# The temperature/humidity/pressure sensor, if any.
-bme280 = None
-try:
-    i2c = board.I2C()  # uses board.SCL and board.SDA
-    bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-    print("Temperature/pressure/humidity sensor OK!")
-except:
-    print("No temp sensor? Continuing....")
+import sensors
+sensor = sensors.Sensor()
+if sensor is None:
+    print("**** No p/t/h sensor???")
 
 
 neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
@@ -146,20 +149,28 @@ while True:
 
     data_dict = {}
 
-    if bme280 is not None:
-        temp = bme280.temperature
-        hum  = bme280.humidity
-        pres = bme280.pressure
+    if sensor.is_ok():
 
+        temp = sensor.temperature()
         t_F = (temp * 9 / 5) + 32
-
         data_dict['T'] = f"{t_F:2.0f}"
-        data_dict['H'] = f"{hum:2.0f}"
-        data_dict['P'] = f"{pres:2.0f}"
+
+        if sensor.has_humidity():
+            hum  = sensor.humidity()
+            data_dict['H'] = f"{hum:2.0f}"
+        else:
+            data_dict['H'] = "?H"
+
+        if sensor.has_pressure():
+            pres = sensor.pressure()
+            data_dict['P'] = f"{pres:2.0f}"
+        else:
+            data_dict['P'] = "?P"
+
     else:
-        data_dict['T'] = "?"
-        data_dict['H'] = "?"
-        data_dict['P'] = "?"
+        data_dict['T'] = "T?"
+        data_dict['H'] = "H?"
+        data_dict['P'] = "P?"
 
     # Before sending the packet, blink the LED.
     neo.fill(LED_PRE_SEND_COLOR)
@@ -197,6 +208,7 @@ while True:
     # packet count is kinda redundant w/ uptime, so removed.
     # data_dict['C'] = packet_count
 
+    # remove spaces
     msg_augmented = json.dumps(data_dict).replace(" ", "")
 
     if len(msg_augmented) <= MAX_RFM_MSG_LEN:
@@ -206,7 +218,7 @@ while True:
         print(f"{msg_augmented}")
 
     packet_count += 1
-    print(f"(maybe) Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
+    print(f"({ACTUALLY_SEND=}) Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
     try:
 
         neo.fill(LED_POST_SEND_COLOR)
