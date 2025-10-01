@@ -19,16 +19,18 @@ import os
 import time
 
 import microcontroller
-import watchdog
+import supervisor
+
 from digitalio import DigitalInOut, Pull
+import storage
 
 # adafruit libs
 import adafruit_rfm69
-# from adafruit_bme280 import basic as adafruit_bme280
 import neopixel
 
 # my code
 import anemom
+import sensors
 
 # endregion imports
 
@@ -57,29 +59,32 @@ ACTUALLY_SEND = True
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 # endregion defines
-
 # region functions
-def setup_watchdog():
 
-    print("Hold BUTTON to disable WDT")
-    time.sleep(2)
+def set_power_level(rfm, pixel):
+    """Check if we are connected to a computer; if so, use low power, to prevent USB corruption."""
+    
+    connected_to_pc = supervisor.runtime.usb_connected
+    # print(f"{connected_to_pc=}")
+    color = (0, 255, 0) # green
+    if we_are_connected_to_pc:
+        color = (255, 0, 0) # red
 
-    # configure onboard button as a pulled up input
-    button = DigitalInOut(board.BUTTON)
-    button.switch_to_input(Pull.UP)
+    for i in range(3):
+        pixel.fill(color)
+        time.sleep(.5)
+        pixel.fill(0)
+        time.sleep(.5)
 
-    wdt = microcontroller.watchdog
-
-    # Disable WDT by pressed onboard button at start up.
-    if button.value:  # if the button is NOT pressed then...
-        wdt.timeout = 8  # max time for RP2040
-        wdt.mode = watchdog.WatchDogMode.RESET  # RAISE or RESET
-        print("WatchDogMode enabled!\n")
-    else:  # if the button is pressed then...
-        print("WatchDogMode disabled\n")
-        wdt = None
-
-    return wdt
+# The transmit power in dBm. 
+# Can be set to a value from -2 to 20 for high power devices (RFM69HCW, high_power=True)
+#  or -18 to 13 for low power devices.
+#
+    if rfm.high_power:
+        power = -2 if connected_to_pc==True else 20
+    else:
+        power = -18 if connected_to_pc==True else 13
+    print(f"  {rfm.high_power=} and {connected_to_pc=} -> will set power to {power}")
 
 
 def show_rfm_info(rfm):
@@ -90,153 +95,124 @@ def show_rfm_info(rfm):
     # print(f"{rfm.__dict__=}")
     print("--------------------------------------------")
 
-# endregion functions
 
+def main():
 
-# region main
+    # Turn off neopixel
+    neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
+    neo.fill(0)
 
-# A watchdog timer doesn't seem to be as useful as it sounded. :-/
-# wdt = setup_watchdog()
-wdt = None
-print("\n****WATCHDOG MODE OVERRIDDEN****\n")
+    # Send delay in seconds 
+    # TODO: how should this relate to rcv.LISTEN_TIMEOUT?
+    SEND_PERIOD = 4
+    print(f"Sending data every {SEND_PERIOD} seconds")
 
-# send delay in seconds 
-# TODO: how should this relate to rcv.LISTEN_TIMEOUT?
-SEND_PERIOD = 4
-print(f"Sending data every {SEND_PERIOD} seconds")
-
-# Initialize RFM69 radio
-
-radio = None # why is the board getting corrupted so often?
-if ACTUALLY_SEND:
-    radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
-    show_rfm_info(radio)
-
-if radio is None:
-    print("\n\n****************** NOT USING RADIO!!!!! \n\n")
-
-
-# # The temperature/humidity/pressure sensor, if any.
-# bme280 = None
-# try:
-#     i2c = board.I2C()  # uses board.SCL and board.SDA
-#     bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-#     print("Temperature/pressure/humidity sensor OK!")
-# except:
-#     print("No temp sensor? Continuing....")
-
-import sensors
-sensor = sensors.Sensor()
-if sensor is None:
-    print("**** No p/t/h sensor???")
-
-
-neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
-neo.fill(0)
-
-
-# Our anemometer interface class.
-anemometer = anemom.Anemom(board.D12, LED_DATA_SEND_COLOR, debug=False, neopixel=neo)
-
-
-packet_count = 0
-time_start = time.time() # seconds
-
-while True:
-
-    if wdt is not None:
-        wdt.feed()  # feed the watchdog timer so it doesn't timeout
-
-    data_dict = {}
-
-    if sensor.is_ok():
-
-        temp = sensor.temperature()
-        t_F = (temp * 9 / 5) + 32
-        data_dict['T'] = f"{t_F:2.0f}"
-
-        if sensor.has_humidity():
-            hum  = sensor.humidity()
-            data_dict['H'] = f"{hum:2.0f}"
-        else:
-            data_dict['H'] = "?H"
-
-        if sensor.has_pressure():
-            pres = sensor.pressure()
-            data_dict['P'] = f"{pres:2.0f}"
-        else:
-            data_dict['P'] = "?P"
-
+    # Initialize RFM69 radio
+    radio = None # why is the board getting corrupted so often?
+    if ACTUALLY_SEND:
+        radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+        set_power_level(radio, neo)
+        show_rfm_info(radio)
     else:
-        data_dict['T'] = "T?"
-        data_dict['H'] = "H?"
-        data_dict['P'] = "P?"
+        print("\n\n****************** NOT USING RADIO!!!!! \n\n")
 
-    # Before sending the packet, blink the LED.
-    neo.fill(LED_PRE_SEND_COLOR)
-    time.sleep(LED_POST_SEND_BLINK)
-    neo.fill(LED_COLOR_OFF)
+    # Set up whichever sensor is attatched.
+    sensor = sensors.Sensor()
+    if sensor is None:
+        print("**** No p/t/h sensor???")
 
-    # Now just get the raw count from the anemomoter;
-    # calculate MPH on this side.
-    #
-    # wind = anemometer.get_mph(COLLECTION_TIME)
-    anemom_count = anemometer.get_raw(COLLECTION_TIME)
+    # Our anemometer interface class.
+    anemometer = anemom.Anemom(board.D12, LED_DATA_SEND_COLOR, debug=False, neopixel=neo)
 
-    # Send the raw anemometer count, to be intrepreted by the rcv side.
-    print(f"  {anemom_count=}")
-    data_dict['C'] = f"{anemom_count:2.0f}"
+    packet_count = 0
+    time_start = time.time() # seconds
 
-    # if we don't do this we exceed 60 chars!
-    msg_to_send = json.dumps(data_dict).replace(" ", "")
+    while True:
 
+        data_dict = {}
 
-    # FIXME
-    # augmented packet can be too large:
-        #   0.0 MPH
-        # Data packet too large!
-        #  Uptime: 1033139 seconds
-        #  CPU: 23C; radio: 19C
+        if sensor.is_ok():
 
+            temp = sensor.temperature()
+            t_F = (temp * 9 / 5) + 32
+            data_dict['T'] = f"{t_F:2.0f}"
 
-    # Augment with some status data?
-    # TODO: also send CPU temperature? (that is, device temp)
+            if sensor.has_humidity():
+                hum  = sensor.humidity()
+                data_dict['H'] = f"{hum:2.0f}"
+            else:
+                data_dict['H'] = "?H"
 
-    uptime = time.time() - time_start
-    data_dict['U'] = uptime
+            if sensor.has_pressure():
+                pres = sensor.pressure()
+                data_dict['P'] = f"{pres:2.0f}"
+            else:
+                data_dict['P'] = "?P"
 
-    # packet count is kinda redundant w/ uptime, so removed.
-    # data_dict['C'] = packet_count
+        else:
+            data_dict['T'] = "T?"
+            data_dict['H'] = "H?"
+            data_dict['P'] = "P?"
 
-    # remove spaces
-    msg_augmented = json.dumps(data_dict).replace(" ", "")
-
-    if len(msg_augmented) <= MAX_RFM_MSG_LEN:
-        msg_to_send = msg_augmented
-    else:
-        print(f"Full data packet too large! {len(msg_augmented)=}")
-        print(f"{msg_augmented}")
-
-    packet_count += 1
-    print(f"({ACTUALLY_SEND=}) Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
-    try:
-
-        neo.fill(LED_POST_SEND_COLOR)
-        if radio is not None:
-            radio.send(msg_to_send)
+        # Before sending the packet, blink the LED.
+        neo.fill(LED_PRE_SEND_COLOR)
         time.sleep(LED_POST_SEND_BLINK)
-    
-    except AssertionError:
-        print(f"*** Sending packet failed: {AssertionError}")
-    finally:
         neo.fill(LED_COLOR_OFF)
 
-    print(f" Uptime: {uptime} seconds")
-    if radio is not None:
-        print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {radio.temperature:1.0f}C")
-    time.sleep(SEND_PERIOD)
+        # Now just get the raw count from the anemomoter;
+        # calculate MPH on this side.
+        #
+        # wind = anemometer.get_mph(COLLECTION_TIME)
+        anemom_count = anemometer.get_raw(COLLECTION_TIME)
 
-    # we never exit the send loop.
+        # Send the raw anemometer count, to be intrepreted by the rcv side.
+        print(f"  {anemom_count=}")
+        data_dict['C'] = f"{anemom_count:2.0f}"
+
+        # if we don't do this we exceed 60 chars!
+        msg_to_send = json.dumps(data_dict).replace(" ", "")
+
+
+
+        # Augment with some status data?
+        # TODO: also send CPU or radio temperature? (that is, device temp)
+
+        uptime = time.time() - time_start
+        data_dict['U'] = uptime
+        msg_augmented = json.dumps(data_dict).replace(" ", "")
+
+        if len(msg_augmented) <= MAX_RFM_MSG_LEN:
+            msg_to_send = msg_augmented
+        else:
+            print(f"Full data packet too large! {len(msg_augmented)=}")
+            print(f"  ie: {msg_augmented}")
+
+        packet_count += 1
+        print(f"({ACTUALLY_SEND=}) Sending packet #{packet_count}, {len(msg_to_send)} chars: {msg_to_send}")
+        try:
+
+            neo.fill(LED_POST_SEND_COLOR)
+            if radio is not None:
+                radio.send(msg_to_send)
+            time.sleep(LED_POST_SEND_BLINK)
+
+        except AssertionError:
+            print(f"*** Sending packet failed: {AssertionError}")
+        finally:
+            neo.fill(LED_COLOR_OFF)
+
+        print(f" Uptime: {uptime} seconds")
+        if radio is not None:
+            print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {radio.temperature:1.0f}C")
+        time.sleep(SEND_PERIOD)
+
+        # we never exit the send loop.
+
+
+# endregion functions
+# region main
+
+# do it!
+main()
 
 # endregion main
-
