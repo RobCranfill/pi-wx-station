@@ -6,7 +6,7 @@
 
 import time
 
-import asyncio
+# import asyncio
 import board
 # import digitalio
 import keypad
@@ -73,57 +73,58 @@ class Anemom:
     
                 time.sleep(0.01) # for why? lessen CPU usage?
 
-    ########################################################
-    # I think all the following code is going to go away.
-    # Too complicated, for no benefit, I think.
 
-    def collect_count(self, sample_time):
-        """Collect pin transitions for the indicated period (seconds)"""
+    # ########################################################
+    # # I think all the following code is going to go away.
+    # # Too complicated, for no benefit, I think.
 
-        async def catch_pin_transitions(pin, seconds):
-            """Watch the given pin for the indicated number of seconds"""
+    # def collect_count(self, sample_time):
+    #     """Collect pin transitions for the indicated period (seconds)"""
 
-            end_ticks = time.monotonic_ns() + seconds * 1000000000
-            print(f" collect_count: {sample_time=}") if self._debug else True
-            # print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
+    #     async def catch_pin_transitions(pin, seconds):
+    #         """Watch the given pin for the indicated number of seconds"""
 
-            with keypad.Keys((pin,), value_when_pressed=False) as keys:
-                while True:
-                    event = keys.events.get()
-                    if event:
-                        if event.pressed:
-                            self._count += 1
-                            # print(f" pin went low: {self._count=}")
+    #         end_ticks = time.monotonic_ns() + seconds * 1000000000
+    #         print(f" collect_count: {sample_time=}") if self._debug else True
+    #         # print(f" start: {time.monotonic_ns()=}, end: {end_ticks=}") if self._debug else True
 
-                            if self._neopixel is not None:
-                                self._neopixel.fill(self._send_color)
+    #         with keypad.Keys((pin,), value_when_pressed=False) as keys:
+    #             while True:
+    #                 event = keys.events.get()
+    #                 if event:
+    #                     if event.pressed:
+    #                         self._count += 1
+    #                         # print(f" pin went low: {self._count=}")
 
-                        elif event.released:
-                            # print(" pin went high")
-                            if self._neopixel is not None:
-                                self._neopixel.fill(LED_OFF)
+    #                         if self._neopixel is not None:
+    #                             self._neopixel.fill(self._send_color)
 
-                    if time.monotonic_ns() > end_ticks:
-                        # print(" catch_pin_transitions done!")
-                        print(f" catch_pin_transitions: {self._count=}") if self._debug else True
-                        return
-                    await asyncio.sleep(0)
+    #                     elif event.released:
+    #                         # print(" pin went high")
+    #                         if self._neopixel is not None:
+    #                             self._neopixel.fill(LED_OFF)
 
-        async def gather_events(sample_time):
-            interrupt_task = asyncio.create_task(catch_pin_transitions(self._input_pin, sample_time))
-            await asyncio.gather(interrupt_task)
+    #                 if time.monotonic_ns() > end_ticks:
+    #                     # print(" catch_pin_transitions done!")
+    #                     print(f" catch_pin_transitions: {self._count=}") if self._debug else True
+    #                     return
+    #                 await asyncio.sleep(0)
 
-        self._count = 0
-        asyncio.run(gather_events(sample_time))
-        return self._count
+    #     async def gather_events(sample_time):
+    #         interrupt_task = asyncio.create_task(catch_pin_transitions(self._input_pin, sample_time))
+    #         await asyncio.gather(interrupt_task)
 
-    def get_mph(self, sample_time):
-        """This is the useful thing."""
-        count = self.collect_count(sample_time)
-        return count * COUNT_TO_MPH / sample_time
+    #     self._count = 0
+    #     asyncio.run(gather_events(sample_time))
+    #     return self._count
 
-    ########################################################
-    # End of doomed code.
+    # def get_mph(self, sample_time):
+    #     """This is the useful thing."""
+    #     count = self.collect_count(sample_time)
+    #     return count * COUNT_TO_MPH / sample_time
+
+    # ########################################################
+    # # End of doomed code.
 
 
 def test():
