@@ -1,5 +1,5 @@
 # pi-wx-station
-RP2040-based weather station
+A RP2040-based weather station
 
 # Goal
 I want to make my own weather station, in large part becuase
@@ -13,21 +13,20 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 # Method
 ## Hardware:
   * Two Adafruit Feather RP2040 RFM69 microcontrollers (Adafruit part #5712)
-  * I2C-based temperature/pressure/humidity sensor
+  * I2C-based temperature (optionally also pressure/humidity) sensor
   * Anemometer: Part number RS-FSJT-NPN, from Amazon (or see below)
   * Low priority:
     * Wind vane (for wind direction)
     * Solar sensor
   * Display is problematic - see below
-  * Antenna as needed; so far a quarter-wave wire antenna suffices!
-
+  * A light sensor to dim the display as appropriate
+  * Antenna as needed; so far a quarter-wave wire antenna suffices (altho it may be marginal)
 
 ## Software
-  * CircuitPython, of course! 9.2.3 used far development.
+  * CircuitPython, of course! Up to version 10.0.0 used in development.
   * Various Adafruit libraries; see 'requirements.txt' for output from 'circup'
 
 ## HW Notes
-
 | Anemometer | Signal | Feather |
 | ------ | ------ | ------ |
 | Brown  | VCC    | USB
@@ -38,7 +37,13 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 ## Thoughts
 
+The radio seems OK for my situation: a distance of about 100 feet, thru several walls of the house,
+but nothing too metallic or RF-generating in the way. I do get some missing packets; more research
+is needed.
+
 Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
+
+A nicer display would be, uh, nice.
 
 
 ## Reference
