@@ -65,9 +65,9 @@ def set_power_level(rfm, pixel):
     """Check if we are connected to a computer; if so, use low power, to prevent USB corruption."""
     
     connected_to_pc = supervisor.runtime.usb_connected
-    # print(f"{connected_to_pc=}")
+    print(f"{connected_to_pc=}")
     color = (0, 255, 0) # green
-    if we_are_connected_to_pc:
+    if connected_to_pc:
         color = (255, 0, 0) # red
 
     for i in range(3):
@@ -81,7 +81,7 @@ def set_power_level(rfm, pixel):
 #  or -18 to 13 for low power devices.
 #
     if rfm.high_power:
-        power = -2 if connected_to_pc==True else 20
+        power =  -2 if connected_to_pc==True else 20
     else:
         power = -18 if connected_to_pc==True else 13
     print(f"  {rfm.high_power=} and {connected_to_pc=} -> will set power to {power}")
