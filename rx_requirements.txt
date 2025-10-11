@@ -1,0 +1,7 @@
+adafruit_rfm69==2.1.25
+adafruit_pixelbuf==2.0.9
+neopixel==6.3.17
+adafruit_pct2075==1.1.25
+adafruit_bus_device==5.2.13
+adafruit_bme280==2.6.29
+adafruit_register==1.11.0

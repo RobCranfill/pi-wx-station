@@ -1,0 +1,7 @@
+adafruit_rfm69==2.1.25
+adafruit_vcnl4020==1.0.5
+adafruit_pixelbuf==2.0.9
+neopixel==6.3.17
+adafruit_bus_device==5.2.13
+adafruit_ht16k33==4.6.14
+adafruit_register==1.11.0
