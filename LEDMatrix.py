@@ -69,7 +69,7 @@ class LEDMatrix:
         self._matrix.fill(0)
 
     def set_mode_indicator(self, is_temperature):
-        """Indicate whether we are showing temp or wind. How?"""
+        """Indicate whether we are showing temp or wind with a vertical bar on left edge. "Up" is wind."""
 
         # horizontal line under all digits?
         # for x in range(DISPLAY_WIDTH):
@@ -91,9 +91,9 @@ class LEDMatrix:
             self._matrix[0, 7-y] = 1
 
     def set_aux_indicator_h(self, level):
-        """Status indicator along the bottom edge, from the left."""
+        """Status indicator along the bottom edge, from the left. Starting with pixel x=1"""
         for x in range(min(level, 16)):
-            self._matrix[x, 7] = 1
+            self._matrix[x+1, 7] = 1
 
 
     def show_chars(self, two_chars):
