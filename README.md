@@ -39,11 +39,19 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 The radio seems OK for my situation: a distance of about 100 feet, thru several walls of the house,
 but nothing too metallic or RF-generating in the way. I do get some missing packets; more research
-is needed.
+is needed. (An initial attempt to fix this involves upping the xmit power; we shall see if that works.)
 
 Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
 
 A nicer display would be, uh, nice.
+
+## Version 2
+In order to support a more varied set of data points, take a somewhat more sophisticated approach:
+ - Xmit various items as they are measured - wind speed every, say, 5 seconds, but temperature every 1 minute.
+ - Send each item as an individual radio packet.
+ - On the receive side, collect these values locally, and dispay them as desired.
+ - This means noticing when a given value goes "stale". This could be complicated. Or not.
+
 
 
 ## Reference

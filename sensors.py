@@ -1,7 +1,7 @@
-"""Class to support different non-windspeed sensors.
+"""Class to support different temperature/pressure/humidity sensors.
 
 This will, so far, either be an Adafruit BME280 temperature/pressure/humidity sensor,
-or a (much cheaper) Adafruit PCT2075 temperature-only sensor.
+or a (slightly cheaper) Adafruit PCT2075 temperature-only sensor.
 """
 
 import board
@@ -9,13 +9,13 @@ import math
 import traceback
 
 
-# TODO: how to support one but not the other? dunno.
-import adafruit_bme280
+# Use the 'advanced' library - we have lots of RAM - altho do we *need* "advanced"??
+import adafruit_bme280.advanced as adafruit_bme280
 import adafruit_pct2075
 
 
 class Sensor():
-
+    """This will try to connnect to either of the two kinds of sensors I have."""
     def __init__(self):
         self._has_temperature = False
         self._has_pressure = False
@@ -30,35 +30,40 @@ class Sensor():
         sensor = None
         try:
             sensor = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-            print("BME280: temperature/pressure/humidity sensor OK!")
+            print("BME280 temperature/pressure/humidity sensor OK!")
             self._is_bme280 = True
             self._has_temperature = True
             self._has_pressure = True
             self._has_humidity = True
-        except:
-            print("No BME280 sensor? Continuing....")
+        except Exception as e:
+            print("\n**** No BME280 sensor?")
+            traceback.print_exception(e)
+            print("  Continuing....")
+            sensor = None
 
         if sensor is None:
             try:
                 sensor = adafruit_pct2075.PCT2075(i2c)
-                print("PCT2075: temperature sensor OK!")
+                print("PCT2075 temperature sensor OK!")
                 self._is_pct2075 = True
                 self._has_temperature = True
             except Exception as e:
+                print("\n**** No PCT2075 sensor?")
                 traceback.print_exception(e)
-                print("No PCT2075 sensor? Continuing....")
+                print("  Continuing....")
 
         # This means this could be None if no sensor attached. Makes sense. Or. :-)
         self._sensor = sensor
 
         if sensor is None:
             self._is_ok = False
+            print("\n**** No temperature sensor!\n")
         else:
             self._is_ok = True
 
 
     def is_ok(self):
-        """Are we initted OK?"""
+        """Are we initted OK? If this is False, all other values are bogus."""
         return self._is_ok
 
     def has_temperature(self):
