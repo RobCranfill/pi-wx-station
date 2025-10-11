@@ -23,37 +23,48 @@ class Sensor():
 
         self._is_bme280 = False
         self._is_pct2075 = False
-        
-        i2c = board.I2C()  # uses board.SCL and board.SDA
+
 
         # The temperature/humidity/pressure sensor, if any.
         sensor = None
+
+        i2c_ok = False
         try:
-            sensor = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-            print("BME280 temperature/pressure/humidity sensor OK!")
-            self._is_bme280 = True
-            self._has_temperature = True
-            self._has_pressure = True
-            self._has_humidity = True
-        except Exception as e:
-            print("\n**** No BME280 sensor?")
+            i2c = board.I2C()  # uses board.SCL and board.SDA
+            i2c_ok = True
+        except RuntimeError as e:
+            print("*** No I2C devices attached???")
+            print(" Continuing....")
             traceback.print_exception(e)
-            print("  Continuing....")
-            sensor = None
 
-        if sensor is None:
+        if i2c_ok:
+
             try:
-                sensor = adafruit_pct2075.PCT2075(i2c)
-                print("PCT2075 temperature sensor OK!")
-                self._is_pct2075 = True
+                sensor = adafruit_bme280.Adafruit_BME280_I2C(i2c)
+                print("BME280 temperature/pressure/humidity sensor OK!")
+                self._is_bme280 = True
                 self._has_temperature = True
+                self._has_pressure = True
+                self._has_humidity = True
             except Exception as e:
-                print("\n**** No PCT2075 sensor?")
-                traceback.print_exception(e)
+                print("\n**** No BME280 sensor?")
+                # traceback.print_exception(e)
                 print("  Continuing....")
+                sensor = None
 
-        # This means this could be None if no sensor attached. Makes sense. Or. :-)
-        self._sensor = sensor
+            if sensor is None:
+                try:
+                    sensor = adafruit_pct2075.PCT2075(i2c)
+                    print("PCT2075 temperature sensor OK!")
+                    self._is_pct2075 = True
+                    self._has_temperature = True
+                except Exception as e:
+                    print("\n**** No PCT2075 sensor?")
+                    # traceback.print_exception(e)
+                    print("  Continuing....")
+
+            # This means this could be None if no sensor attached. Makes sense. Or. :-)
+            self._sensor = sensor
 
         if sensor is None:
             self._is_ok = False

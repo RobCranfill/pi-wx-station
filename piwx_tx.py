@@ -125,28 +125,31 @@ def count_to_mph(count, period):
 def create_initial_data_dict():
     return {}
 
-def update_data_dict(dict, sensor, anemom):
+def update_data_dict(data_dict, sensor, anemom):
     """Populate with the *display values* for the receiving station to show."""
 
     # Get the temperature.
     if sensor.is_ok():
         temp = sensor.temperature()
         temp_f = (temp * 9 / 5) + 32
-        dict[piwx_constants.DICT_KEY_TEMPERATURE] = f"{temp_f:2.0f}" # TODO: negative? >100?
+        data_dict[piwx_constants.DICT_KEY_TEMPERATURE] = f"{temp_f:2.0f}" # TODO: negative? >100?
     else:
-        dict[piwx_constants.DICT_KEY_TEMPERATURE] = piwx_constants.DICT_VALUE_NO_THERMOMETER
+        data_dict[piwx_constants.DICT_KEY_TEMPERATURE] = piwx_constants.DICT_VALUE_NO_THERMOMETER
 
-    # Caclulate wind speed.
-    anemom_count = anemom.get_raw(COLLECTION_TIME)
+    USE_RANDOM_WIND = True
+    if not USE_RANDOM_WIND:
 
-    # FIXME: for testing
-    anemom_count = random.randint(0, 30)
+        # Caclulate wind speed.
+        anemom_count = anemom.get_raw(COLLECTION_TIME)
+    else:
+        # FIXME: for testing
+        anemom_count = random.randint(0, 30)
 
     mph = count_to_mph(anemom_count, COLLECTION_TIME)
     print(f" {anemom_count=} -> {mph} MPH")
-    dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.0f}"
+    data_dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.0f}"
 
-    return dict
+    return data_dict
 
 
 def main():
