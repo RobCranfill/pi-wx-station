@@ -30,9 +30,7 @@ import anemom
 import sensors
 import piwx_constants
 
-
 # endregion imports
-
 # region defines
 
 # Send delay in seconds. This is in addition to data collection time.
@@ -64,8 +62,45 @@ ACTUALLY_SEND = True
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 # endregion defines
-
 # region functions
+
+# TODO: or should this be done on the rx side???
+MOVING_AVERAGE_SIZE = 5
+moving_average_data = [0.0] * MOVING_AVERAGE_SIZE
+
+def test_moving_averages():
+
+    global moving_average_data
+
+    # data = [1, 2, 3, 4]
+    # data, result = update_moving_average(data, 5)
+    # if result == 3.5:
+    #     print("good!")
+    # else:
+    #     print("bad!!")
+
+    moving_average_data, result = update_moving_average(moving_average_data, 1.1)
+    moving_average_data, result = update_moving_average(moving_average_data, 2.2)
+    moving_average_data, result = update_moving_average(moving_average_data, 3.3)
+    moving_average_data, result = update_moving_average(moving_average_data, 4.4)
+    moving_average_data, result = update_moving_average(moving_average_data, 5.5)
+    moving_average_data, result = update_moving_average(moving_average_data, 6.6)
+    moving_average_data, result = update_moving_average(moving_average_data, 100)
+
+    while True:
+        pass
+
+
+def update_moving_average(data_list, new_data_point):
+    """return (new_data_list, avg)"""
+
+    # print(f"{data_list=} {new_data_point=}")
+    new_list = data_list[1:]
+    new_list.append(new_data_point)
+
+    avg = sum(new_list) / len(new_list)
+    print(f"{new_list=} {avg=}")
+    return new_list, avg
 
 def set_power_level(rfm, pixel):
     """Check if we are connected to a computer; if so, use low power, to prevent USB corruption."""
@@ -115,15 +150,23 @@ def init_radio(neo_pix):
 
     return radio
 
-COUNT_TO_MPH_CONST = 1
+# Is this correct? oversimplistic? (it's assuming the count is linear w/r/t windspeed) 
+COUNT_TO_MPH_CONST = 0.2
 
 def count_to_mph(count, period):
     """Return the MPH implied by the given count over the indicated period in seconds."""
+
+    # meters_per_second = count_per_second * 0.0875;
+    # or
+    # mph = count_per_second * 0.2
+    # ???
     return int(count / period * COUNT_TO_MPH_CONST)
 
 
 def create_initial_data_dict():
+    """Create the initial dict - with 'missing hardware' values?"""
     return {}
+
 
 def update_data_dict(data_dict, sensor, anemom):
     """Populate with the *display values* for the receiving station to show."""
@@ -147,6 +190,12 @@ def update_data_dict(data_dict, sensor, anemom):
 
     mph = count_to_mph(anemom_count, COLLECTION_TIME)
     print(f" {anemom_count=} -> {mph} MPH")
+
+    global moving_average_data
+    moving_average_data, avg = update_moving_average(moving_average_data, mph)
+    # print(f" avg is {avg:2.0f}")
+    data_dict[piwx_constants.DICT_KEY_AVERAGE] = f"{avg:2.0f}"
+
     data_dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.0f}"
 
     return data_dict
@@ -154,6 +203,8 @@ def update_data_dict(data_dict, sensor, anemom):
 
 def main():
     """This has our forever processing loop."""
+
+    # test_moving_averages()
 
     # Turn off neopixel
     neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
