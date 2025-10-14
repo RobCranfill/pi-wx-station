@@ -31,16 +31,9 @@ import piwx_constants
 import moving_average
 
 
-# Define some stuff
-RADIO_FREQ_MHZ = 915.0
-CS = digitalio.DigitalInOut(board.RFM_CS)
-RESET = digitalio.DigitalInOut(board.RFM_RST)
 
 ########################################################
 
-# Read 16-character encryption key.
-# TODO: can this fail?
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 # TODO: this may be important.
 # We send every X seconds, we should probably wait for 2X seconds??
@@ -102,8 +95,12 @@ def get_message(rfm):
 def init_hardware():
     """Init the radio, display, and light sensor and return them."""
 
+    CS = digitalio.DigitalInOut(board.RFM_CS)
+    RESET = digitalio.DigitalInOut(board.RFM_RST)
+
     # Initialize RFM69 radio
-    rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+    rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, 
+                               piwx_constants.RADIO_FREQ_MHZ, encryption_key=piwx_constants.ENCRYPTION_KEY)
     # show_radio_status(rfm)
 
     leds = LEDMatrix.LEDMatrix()

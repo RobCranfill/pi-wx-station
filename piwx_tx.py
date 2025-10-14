@@ -37,7 +37,6 @@ import piwx_constants
 # TODO: How should this relate to rcv.LISTEN_TIMEOUT?
 SEND_DELAY = 2
 
-# Define some stuff
 COLLECTION_TIME = 1 # collect anemometer data for this many seconds at a time
 LED_PRE_SEND_COLOR  = 0x00_FF_00
 LED_PRE_SEND_BLINK  = 0.5
@@ -46,10 +45,6 @@ LED_DATA_SEND_COLOR = 0xFF_00_00
 LED_POST_SEND_BLINK = 0.5
 LED_COLOR_OFF = 0x00_00_00
 
-# Don't change this!
-RADIO_FREQ_MHZ = 915.0
-CS = digitalio.DigitalInOut(board.RFM_CS)
-RESET = digitalio.DigitalInOut(board.RFM_RST)
 
 # This is a hardware limit
 MAX_RFM_MSG_LEN = 60
@@ -57,50 +52,10 @@ MAX_RFM_MSG_LEN = 60
 # just test the sensors and data packing, or actually send data?
 ACTUALLY_SEND = True
 
-# Read 16-character encryption key.
-# TODO: can this fail?
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+
 
 # endregion defines
 # region functions
-
-# # TODO: or should this be done on the rx side???
-# MOVING_AVERAGE_SIZE = 5
-# moving_average_data = [0.0] * MOVING_AVERAGE_SIZE
-
-# def test_moving_averages():
-
-#     global moving_average_data
-
-#     # data = [1, 2, 3, 4]
-#     # data, result = update_moving_average(data, 5)
-#     # if result == 3.5:
-#     #     print("good!")
-#     # else:
-#     #     print("bad!!")
-
-#     moving_average_data, result = update_moving_average(moving_average_data, 1.1)
-#     moving_average_data, result = update_moving_average(moving_average_data, 2.2)
-#     moving_average_data, result = update_moving_average(moving_average_data, 3.3)
-#     moving_average_data, result = update_moving_average(moving_average_data, 4.4)
-#     moving_average_data, result = update_moving_average(moving_average_data, 5.5)
-#     moving_average_data, result = update_moving_average(moving_average_data, 6.6)
-#     moving_average_data, result = update_moving_average(moving_average_data, 100)
-
-#     while True:
-#         pass
-
-
-# def update_moving_average(data_list, new_data_point):
-#     """return (new_data_list, avg)"""
-
-#     # print(f"{data_list=} {new_data_point=}")
-#     new_list = data_list[1:]
-#     new_list.append(new_data_point)
-
-#     avg = sum(new_list) / len(new_list)
-#     print(f"{new_list=} {avg=}")
-#     return new_list, avg
 
 def set_power_level(rfm, pixel):
     """Check if we are connected to a computer; if so, use low power, to prevent USB corruption."""
@@ -117,10 +72,9 @@ def set_power_level(rfm, pixel):
         pixel.fill(0)
         time.sleep(.5)
 
-# The transmit power in dBm.
-# Can be set to a value from -2 to 20 for high power devices (RFM69HCW, high_power=True)
-#  or -18 to 13 for low power devices.
-#
+    # The transmit power in dBm.
+    # Can be set to a value from -2 to 20 for high power devices (RFM69HCW, high_power=True)
+    #  or -18 to 13 for low power devices.
     if rfm.high_power:
         power =  -2 if connected_to_pc else 20
     else:
@@ -131,7 +85,12 @@ def set_power_level(rfm, pixel):
 def init_radio(neo_pix):
     """Return the RFM object."""
 
-    radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
+
+    CS = digitalio.DigitalInOut(board.RFM_CS)
+    RESET = digitalio.DigitalInOut(board.RFM_RST)
+
+    radio = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, 
+                                 piwx_constants.RADIO_FREQ_MHZ, encryption_key=piwx_constants.ENCRYPTION_KEY)
     if radio is None:
         print("What? no radio???")
         return None
@@ -183,21 +142,16 @@ def update_data_dict(data_dict, sensor, anemom):
         data_dict[piwx_constants.DICT_KEY_TEMPERATURE] = piwx_constants.DICT_VALUE_NO_THERMOMETER
 
     USE_RANDOM_WIND = True
-    if not USE_RANDOM_WIND:
-
-        # Caclulate wind speed.
-        anemom_count = anemom.get_raw(COLLECTION_TIME)
-    else:
+    if USE_RANDOM_WIND:
         # FIXME: for testing
         anemom_count = random.randint(0, 60)
+    else:
+        # Caclulate wind speed.
+        anemom_count = anemom.get_raw(COLLECTION_TIME)
 
     mph = count_to_mph(anemom_count, COLLECTION_TIME)
     print(f" {anemom_count=} -> {mph} MPH")
 
-    # global moving_average_data
-    # moving_average_data, avg = update_moving_average(moving_average_data, mph)
-    # print(f" avg is {avg:2.0f}")
-    # data_dict[piwx_constants.DICT_KEY_AVERAGE] = f"{avg:2.0f}"
 
     # # Send windspeed as a string, with 1/10th mph precision.
     data_dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.1f}"
@@ -208,22 +162,17 @@ def update_data_dict(data_dict, sensor, anemom):
 def main():
     """This has our forever processing loop."""
 
-    # test_moving_averages()
-
     # Turn off neopixel
     neo = neopixel.NeoPixel(board.NEOPIXEL, 1)
     neo.fill(0)
-
 
     ## Set up whichever temperature sensor is attatched.
     sensor = sensors.Sensor()
     if sensor is None:
         print("**** No p/t/h sensor???")
 
-
     ## Our anemometer interface.
     anemometer = anemom.Anemom(board.D12, LED_DATA_SEND_COLOR, debug=False, neopixel=neo)
-
 
     ## Initialize RFM69 radio
     radio = None
