@@ -27,6 +27,9 @@ import neopixel
 # mine
 import LEDMatrix
 
+import piwx_constants
+import moving_average
+
 
 # Define some stuff
 RADIO_FREQ_MHZ = 915.0
@@ -137,12 +140,12 @@ def get_brightness_value(light_sensor):
     # print(f" Brightness: {lux=} -> {scaled_int=}")
     return scaled_int
 
-def count_to_mph(count):
-    """Return integer MPH as a string"""
+# def count_to_mph(count):
+#     """Return integer MPH as a string"""
 
-    mph = int(count / 15)
-    print(f" count_to_mph: {count=} -> {mph=}")
-    return str(mph)
+#     mph = int(count / 15)
+#     print(f" count_to_mph: {count=} -> {mph=}")
+#     return str(mph)
 
 def c_to_f(c):
     """Return farenheit from celsius"""
@@ -191,6 +194,9 @@ def update_dict(rfm, dict, missed_packet_count):
 def update_display(led, two_chars, is_temperature, missed_packets):
     """Update all the things."""
 
+    if len(two_chars) < 2:
+        two_chars = " " + two_chars
+
     print(f" DISPLAY: '{two_chars}' {is_temperature}")
 
     led.show_chars(two_chars)
@@ -208,15 +214,43 @@ def run():
     data_dict = initial_dict()
     print(f" initial {data_dict=}")
 
+    averager = moving_average.moving_average(10)
+
     while True:
 
         data_dict, missed_packets = update_dict(radio, data_dict, missed_packets)
 
-        for k in ['T', 'W']:
-            # print(f" {data_dict=}")
-            display_val = data_dict[k]
-            update_display(led_matrix, display_val, k=='T', missed_packets)
-            time.sleep(DISPLAY_WAIT)
+        # we can't treat T and W the same any more :-/
+
+        # for k in ['T', 'W']:
+        #     # print(f" {data_dict=}")
+        #     display_val = data_dict[k]
+        #     update_display(led_matrix, display_val, k=='T', missed_packets)
+        #     time.sleep(DISPLAY_WAIT)
+
+        print()
+        print(" ** Display temp:")
+        temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
+        update_display(led_matrix, temp_str, True, missed_packets)
+        time.sleep(DISPLAY_WAIT)
+
+
+        print(" ** Display wind:")
+        wind_val = float(data_dict[piwx_constants.DICT_KEY_WIND])
+        avg = averager.update_moving_average(wind_val)
+        print(f" >> wind speed {wind_val}, average now {avg}")
+
+        # # to display most recent wind value:
+        # wind_str = str(int(wind_val))
+
+        # to display average:
+        wind_str = f"{avg:2.0f}"
+
+
+        update_display(led_matrix, wind_str, False, missed_packets)
+        time.sleep(DISPLAY_WAIT)
+
+    # end run()
 
             
 # # ##################################################

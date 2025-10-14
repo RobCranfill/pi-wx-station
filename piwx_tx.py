@@ -64,43 +64,43 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 # endregion defines
 # region functions
 
-# TODO: or should this be done on the rx side???
-MOVING_AVERAGE_SIZE = 5
-moving_average_data = [0.0] * MOVING_AVERAGE_SIZE
+# # TODO: or should this be done on the rx side???
+# MOVING_AVERAGE_SIZE = 5
+# moving_average_data = [0.0] * MOVING_AVERAGE_SIZE
 
-def test_moving_averages():
+# def test_moving_averages():
 
-    global moving_average_data
+#     global moving_average_data
 
-    # data = [1, 2, 3, 4]
-    # data, result = update_moving_average(data, 5)
-    # if result == 3.5:
-    #     print("good!")
-    # else:
-    #     print("bad!!")
+#     # data = [1, 2, 3, 4]
+#     # data, result = update_moving_average(data, 5)
+#     # if result == 3.5:
+#     #     print("good!")
+#     # else:
+#     #     print("bad!!")
 
-    moving_average_data, result = update_moving_average(moving_average_data, 1.1)
-    moving_average_data, result = update_moving_average(moving_average_data, 2.2)
-    moving_average_data, result = update_moving_average(moving_average_data, 3.3)
-    moving_average_data, result = update_moving_average(moving_average_data, 4.4)
-    moving_average_data, result = update_moving_average(moving_average_data, 5.5)
-    moving_average_data, result = update_moving_average(moving_average_data, 6.6)
-    moving_average_data, result = update_moving_average(moving_average_data, 100)
+#     moving_average_data, result = update_moving_average(moving_average_data, 1.1)
+#     moving_average_data, result = update_moving_average(moving_average_data, 2.2)
+#     moving_average_data, result = update_moving_average(moving_average_data, 3.3)
+#     moving_average_data, result = update_moving_average(moving_average_data, 4.4)
+#     moving_average_data, result = update_moving_average(moving_average_data, 5.5)
+#     moving_average_data, result = update_moving_average(moving_average_data, 6.6)
+#     moving_average_data, result = update_moving_average(moving_average_data, 100)
 
-    while True:
-        pass
+#     while True:
+#         pass
 
 
-def update_moving_average(data_list, new_data_point):
-    """return (new_data_list, avg)"""
+# def update_moving_average(data_list, new_data_point):
+#     """return (new_data_list, avg)"""
 
-    # print(f"{data_list=} {new_data_point=}")
-    new_list = data_list[1:]
-    new_list.append(new_data_point)
+#     # print(f"{data_list=} {new_data_point=}")
+#     new_list = data_list[1:]
+#     new_list.append(new_data_point)
 
-    avg = sum(new_list) / len(new_list)
-    print(f"{new_list=} {avg=}")
-    return new_list, avg
+#     avg = sum(new_list) / len(new_list)
+#     print(f"{new_list=} {avg=}")
+#     return new_list, avg
 
 def set_power_level(rfm, pixel):
     """Check if we are connected to a computer; if so, use low power, to prevent USB corruption."""
@@ -150,17 +150,20 @@ def init_radio(neo_pix):
 
     return radio
 
-# Is this correct? oversimplistic? (it's assuming the count is linear w/r/t windspeed) 
+# Is this correct? oversimplistic? (it's assuming the count is linear w/r/t windspeed).
+# This comes from 
 COUNT_TO_MPH_CONST = 0.2
 
 def count_to_mph(count, period):
     """Return the MPH implied by the given count over the indicated period in seconds."""
 
+    # Derived from interfacing-anemometer-npn-pulse-output-with-arduino
+    #
     # meters_per_second = count_per_second * 0.0875;
-    # or
+    # or, close enough,
     # mph = count_per_second * 0.2
     # ???
-    return int(count / period * COUNT_TO_MPH_CONST)
+    return count / period * COUNT_TO_MPH_CONST
 
 
 def create_initial_data_dict():
@@ -186,17 +189,18 @@ def update_data_dict(data_dict, sensor, anemom):
         anemom_count = anemom.get_raw(COLLECTION_TIME)
     else:
         # FIXME: for testing
-        anemom_count = random.randint(0, 30)
+        anemom_count = random.randint(0, 60)
 
     mph = count_to_mph(anemom_count, COLLECTION_TIME)
     print(f" {anemom_count=} -> {mph} MPH")
 
-    global moving_average_data
-    moving_average_data, avg = update_moving_average(moving_average_data, mph)
+    # global moving_average_data
+    # moving_average_data, avg = update_moving_average(moving_average_data, mph)
     # print(f" avg is {avg:2.0f}")
-    data_dict[piwx_constants.DICT_KEY_AVERAGE] = f"{avg:2.0f}"
+    # data_dict[piwx_constants.DICT_KEY_AVERAGE] = f"{avg:2.0f}"
 
-    data_dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.0f}"
+    # # Send windspeed as a string, with 1/10th mph precision.
+    data_dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.1f}"
 
     return data_dict
 
