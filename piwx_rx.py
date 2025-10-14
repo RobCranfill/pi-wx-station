@@ -55,6 +55,9 @@ NO_DATA_PACKET = {}
 NO_DATA_PACKET['T'] = 'T?'
 NO_DATA_PACKET['C'] = 'W?'
 
+# We will average the wind over this amount of time.
+WIND_MOVING_AVG_SECONDS = 5
+
 
 def show_radio_status(radio):
     """For fun. But also could use to show local temp - if it worked!"""
@@ -89,9 +92,7 @@ def get_message(rfm):
         # print(f"Rcvd: '{pstr}'")
 
         # TODO: catch exception?
-        data_dict = json.loads(pstr)
-
-        result = data_dict
+        result = json.loads(pstr)
 
     # also get local temp?
 
@@ -99,6 +100,7 @@ def get_message(rfm):
 
 
 def init_hardware():
+    """Init the radio, display, and light sensor and return them."""
 
     # Initialize RFM69 radio
     rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, RADIO_FREQ_MHZ, encryption_key=ENCRYPTION_KEY)
@@ -106,7 +108,7 @@ def init_hardware():
 
     leds = LEDMatrix.LEDMatrix()
 
-    # Initialize VCNL4020
+    # Initialize VCNL4020 light sensor.
     vcln = None
     try:
         vcln = adafruit_vcnl4020.Adafruit_VCNL4020(board.I2C())
@@ -153,10 +155,10 @@ def c_to_f(c):
 
 
 def initial_dict():
-    """Dictionary of values we display."""
+    """Dictionary of values we display, with defaults."""
     d = {}
-    d['T'] = "?T"
-    d['W'] = "?W"
+    d['T'] = piwx_constants.DICT_VALUE_NO_THERMOMETER
+    d['W'] = piwx_constants.DICT_VALUE_NO_ANEMOMETER
     return d
 
 
@@ -168,16 +170,17 @@ def update_dict(rfm, dict, missed_packet_count):
     data = get_message(rfm)
     print(f" Received: {data=}")
 
+    # For testing, miss 80% of packets
     if data is None: # or random.randint(0, 10) > 2:
         missed_packet_count += 1
-        print(f"** missing packet #{missed_packet_count}; ")
+        print(f"** missing packet #{missed_packet_count}")
 
         if missed_packet_count >= MAX_MISSED_PACKETS:
             print("*** MISSED PACKETS > {MAX_MISSED_PACKETS}!")
             dict = initial_dict()
 
     else:
-        print("Got data packet - resetting lost packet count.")
+        print("Got data packet - resetting missed packet count.")
         missed_packet_count = 0
         # led_matrix.set_aux_indicator(0)
 
@@ -214,7 +217,7 @@ def run():
     data_dict = initial_dict()
     print(f" initial {data_dict=}")
 
-    averager = moving_average.moving_average(10)
+    averager = moving_average.moving_average(WIND_MOVING_AVG_SECONDS)
 
     while True:
 
@@ -222,114 +225,34 @@ def run():
 
         # we can't treat T and W the same any more :-/
 
-        # for k in ['T', 'W']:
-        #     # print(f" {data_dict=}")
-        #     display_val = data_dict[k]
-        #     update_display(led_matrix, display_val, k=='T', missed_packets)
-        #     time.sleep(DISPLAY_WAIT)
-
+        # Temp is always good to display.
         print()
         print(" ** Display temp:")
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
         update_display(led_matrix, temp_str, True, missed_packets)
         time.sleep(DISPLAY_WAIT)
 
-
+        # Wind needs massaging (only latest data point was sent; we want the average)
         print(" ** Display wind:")
-        wind_val = float(data_dict[piwx_constants.DICT_KEY_WIND])
-        avg = averager.update_moving_average(wind_val)
-        print(f" >> wind speed {wind_val}, average now {avg}")
+        w_data = data_dict[piwx_constants.DICT_KEY_WIND]
+        if w_data == piwx_constants.DICT_VALUE_NO_ANEMOMETER:
+            wind_str = w_data
+        else:
+            wind_val = float(w_data)
 
-        # # to display most recent wind value:
-        # wind_str = str(int(wind_val))
+            # # to display most recent wind value:
+            # wind_str = str(int(wind_val))
 
-        # to display average:
-        wind_str = f"{avg:2.0f}"
-
+            # to display average:
+            avg = averager.update_moving_average(wind_val)
+            print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SECONDS} second average now {avg}")
+            wind_str = f"{avg:2.0f}"
 
         update_display(led_matrix, wind_str, False, missed_packets)
+
         time.sleep(DISPLAY_WAIT)
 
     # end run()
-
-            
-# # ##################################################
-# # TODO: catch keyboard (or other?) exception and blank the display? or display "??"
-# #
-# def run_old():
-
-#     last_good_packet = NO_DATA_PACKET
-#     missed_packets = 0
-
-#     # Doesn't work well:
-#     fade_in_and_out = False
-
-#     radio, led_matrix, sensor = init_hardware()
-
-#     # works
-#     # for i in range(10):
-#     #     show_radio_status(radio)
-#     #     time.sleep(1)
-
-#     while True:
-
-#         # Get a radio packet.
-#         #
-#         data = get_message(radio)
-#         print(f" {data=}")
-
-#         if data is None: # or random.randint(0, 10) > 2:
-#             missed_packets += 1
-#             print(f"** missing packet #{missed_packets}; ")
-
-#             if missed_packets < MAX_MISSED_PACKETS:
-#                 data = last_good_packet
-#             else:
-#                 data = NO_DATA_PACKET
-#         else:
-#             print("Got data packet - resetting lost packet count.")
-#             last_good_packet = data
-#             missed_packets = 0
-#             led_matrix.set_aux_indicator(0)
-
-
-#         # Values to display:
-#         #
-#         # for key in ["T"]: # just temperature
-#         for key in ["T", "W"]:
-
-#             display_val = data[key]
-#             if len(display_val) < 2:
-#                 display_val = " " + display_val
-#             print(f" {key} = '{display_val}'")
-
-#             # WTF? locks up!
-#             # TODO: try with "send_again" param false
-#             # print(f" LOCAL TEMP {radio.temperature=}")
-
-#             led_matrix.show_chars(display_val)
-
-#             ## Must come after char display or it gets stepped on.
-#             if key == "T":
-#                 led_matrix.set_mode_indicator(True)
-#             else:
-#                 led_matrix.set_mode_indicator(False)
-#             led_matrix.set_aux_indicator_h(missed_packets)
-
-
-#             max_brightness = get_brightness_value(sensor)
-#             print(f"Beginning data display, {max_brightness=}...")
-#             if fade_in_and_out:
-#                 led_matrix.fade_in(max_brightness)
-#             else:
-#                 led_matrix.set_brightness(max_brightness)
-
-#             time.sleep(DISPLAY_TIMEOUT)
-
-#             if fade_in_and_out:
-#                 led_matrix.fade_out(max_brightness)
-
-# # end run method
 
 
 # If we just import this module, this code runs.

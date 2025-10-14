@@ -7,38 +7,35 @@ class moving_average():
     """Like it sez."""
     def __init__(self, n_datapoints):
 
-        self._moving_average_data = [None] * n_datapoints
+        self._n_datapoints = n_datapoints
+        self._moving_average_data = []
 
 
     def update_moving_average(self, new_data_point):
         """return new average value"""
 
-        # print(f"{data_list=} {new_data_point=}")
-        new_list = self._moving_average_data[1:]
-        new_list.append(new_data_point)
+        if len(self._moving_average_data) == self._n_datapoints:
+            self._moving_average_data = self._moving_average_data[1:]
+        self._moving_average_data.append(new_data_point)
 
-        # avg = sum(new_list) / len(new_list)
-        total = 0
-        np = 0
-        for dp in new_list:
-            if dp is not None:
-                total += dp
-                np += 1
-        avg = total / np
-        print(f"{new_list=} {avg=}")
+        avg = sum(self._moving_average_data) / len(self._moving_average_data)
 
-        self._moving_average_data = new_list
+        # print(f"{self._moving_average_data=} + {new_data_point=} -> {new_list=}, {avg=}")
+        print(f"  + {new_data_point=} -> {self._moving_average_data=}, {avg=}")
+
         return avg
 
 
 def test():
 
-    ma = moving_average(5)
+    ma = moving_average(4)
 
     print(f"{ma.update_moving_average(1)}")
     print(f"{ma.update_moving_average(2)}")
     print(f"{ma.update_moving_average(3)}")
     print(f"{ma.update_moving_average(4)}")
+    print(f"{ma.update_moving_average(100)}")
+    print(f"{ma.update_moving_average(100)}")
     print(f"{ma.update_moving_average(100)}")
     print(f"{ma.update_moving_average(100)}")
 
