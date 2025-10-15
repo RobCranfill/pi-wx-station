@@ -48,8 +48,8 @@ NO_DATA_PACKET = {}
 NO_DATA_PACKET['T'] = 'T?'
 NO_DATA_PACKET['C'] = 'W?'
 
-# We will average the wind over this amount of time.
-WIND_MOVING_AVG_SECONDS = 5
+# We will average the wind over this many readings (which take 2-3 seconds each).
+WIND_MOVING_AVG_SAMPLES = 5
 
 
 def show_radio_status(radio):
@@ -214,7 +214,8 @@ def run():
     data_dict = initial_dict()
     print(f" initial {data_dict=}")
 
-    averager = moving_average.moving_average(WIND_MOVING_AVG_SECONDS)
+    averager = moving_average.moving_average(WIND_MOVING_AVG_SAMPLES)
+    print(f"* Averaging wind readings over {WIND_MOVING_AVG_SAMPLES} samples.")
 
     while True:
 
