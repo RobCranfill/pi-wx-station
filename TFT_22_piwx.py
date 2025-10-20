@@ -1,8 +1,16 @@
 """
-    Code for PiWX display using 2.2" TFT display via EYESPI.
+    Code for PiWX display using 2.2" TFT display via SPI.
+    Since the RFM radio also uses SPI, we need a different chip select line.
+
+    Fonts generated with
+        otf2bdf {font_name}.ttf -p {point_size} -o {font_name}-{point_size}.bdf
+      like
+        otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf
+    
+    Also, only required glyphs (0-9, ' ', 'M") are kept in the font file, to keep it small.
+
 """
 import board
-import terminalio
 import displayio
 import time
 import random
@@ -15,15 +23,12 @@ import adafruit_imageload
 
 import adafruit_ili9341
 
-# generated with
-#   otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf
-# FONT_PATH = "fonts/LeagueGothic-Regular-220.bdf"
-# FONT_PATH = "fonts/LeagueGothicMedium-220-digits.bdf"
+
 DEFAULT_FONT_PATH = "fonts/LeagueSpartanBold-220-digits.bdf"
 
+DISPLAY_HEIGHT = 240
+DISPLAY_WIDTH  = 320
 
-HEIGHT = 240
-WIDTH  = 320
 
 class TFT22PiWX():
     """"Driver for Adafruit 2.2" TFT display."""
@@ -37,15 +42,14 @@ class TFT22PiWX():
 
         tft_dc = board.D6
         tft_reset = board.D9
-        tft_tcs = board.D11 # LCD CS = chip select
-        tft_sdcs = board.D10 # SD card chip select
+        tft_tcs = board.D11 # LCD CS = display chip select
+        # tft_sdcs = board.D10 # SD card chip select (unused)
 
-        # display_bus = FourWire(spi, command=tft_dc, chip_select=tft_cs, reset=tft_reset)
         display_bus = FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
-        display = adafruit_ili9341.ILI9341(display_bus, width=WIDTH, height=HEIGHT)
+        display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
         # we need to do manual refresh or the display gets all wonky
-        display.auto_refresh = False   
+        display.auto_refresh = False
 
         self._display = display
 
@@ -53,7 +57,7 @@ class TFT22PiWX():
         splash = displayio.Group()
         display.root_group = splash
 
-        color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
+        color_bitmap = displayio.Bitmap(DISPLAY_WIDTH, DISPLAY_HEIGHT, 1)
         color_palette = displayio.Palette(1)
         color_palette[0] = rgb_background
 
@@ -61,29 +65,28 @@ class TFT22PiWX():
         splash.append(background_sprite)
 
 
-        show_sprite = False
-        if show_sprite:
+    # Not the way to go?
+        # # Load the sprite sheet (bitmap)
+        # sprite_sheet, palette = adafruit_imageload.load("/sprite_sheet_1.bmp",
+        #                                         bitmap=displayio.Bitmap,
+        #                                         palette=displayio.Palette)
 
-            # Load the sprite sheet (bitmap)
-            sprite_sheet, palette = adafruit_imageload.load("/sprite_sheet_1.bmp",
-                                                    bitmap=displayio.Bitmap,
-                                                    palette=displayio.Palette)
+        # # Create a sprite (tilegrid)
+        # sprite = displayio.TileGrid(sprite_sheet, pixel_shader=palette,
+        #                             width = 1, height = 1,
+        #                             tile_width = 64, tile_height = 64)
+        # self._sprite = sprite
+        # # sprite[0] = 0
 
-            # Create a sprite (tilegrid)
-            sprite = displayio.TileGrid(sprite_sheet, pixel_shader=palette,
-                                        width = 1, height = 1,
-                                        tile_width = 64, tile_height = 64)
-            self._sprite = sprite
-            # sprite[0] = 0
-
-            sprite_group = displayio.Group(scale=1)
-            sprite_group.append(sprite)
-            sprite_group.x = 250
-            sprite_group.y =  20
-            splash.append(sprite_group)
+        # sprite_group = displayio.Group(scale=1)
+        # sprite_group.append(sprite)
+        # sprite_group.x = 250
+        # sprite_group.y =  20
+        # splash.append(sprite_group)
 
 
         # Create the text label
+        # TODO: catch missing file?
         font_to_use = bitmap_font.load_font(font_path)
 
         # # for LeagueGothicMedium-220-digits
@@ -97,16 +100,15 @@ class TFT22PiWX():
 
 
     def set_text(self, text):
-        """Set the text to display. '0-9' (and 'M', if that's useful) only! """
+        """Set the text to display. '0-9' (and 'M', if that's useful) only! You must refresh it when ready."""
         self._text_area.text = text
-        # self._display.refresh()
 
     def set_text_color(self, rgb_color):
-        """Set to the indicated RGB color."""
+        """Set the text to the indicated RGB color. You must refresh it when ready."""
         self._text_area.color = rgb_color
-        # self._display.refresh() # needed??
 
     def refresh(self):
+        """Only repaint the display when done making changes, to make it look nicer."""
         self._display.refresh()
 
     # def set_temp_wind_icon(self, icon_index):

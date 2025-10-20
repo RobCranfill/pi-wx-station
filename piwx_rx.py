@@ -7,7 +7,7 @@
     See https://github.com/RobCranfill/pi-wx-station
 
     Version 2: TFT test
-        - Note: remember that the display font only has 0-9 and "M" in it!!
+        - Note: remember that the display font only has 0-9, " " and "M" in it!!
 
 """
 
@@ -188,9 +188,12 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
         # led_matrix.set_aux_indicator(0)
 
         for k in ['T', 'W']:
+
+            #TODO: shouldn't these just be integers?
+
             data_val = str(data[k])
-            if len(data_val) < 2:
-                data_val = ' ' + data_val
+            # if len(data_val) < 2:
+            #     data_val = ' ' + data_val
             dict[k] = data_val
             print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
         print(f" update_dict_from_radio: {dict=}")
@@ -272,6 +275,7 @@ def run():
         time.sleep(DISPLAY_WAIT)
 
         # Wind needs massaging (only latest data point was sent; we want the average)
+        #
         print(" ** Display wind:")
         w_data = data_dict[piwx_constants.DICT_KEY_WIND]
         if w_data == piwx_constants.DICT_VALUE_NO_ANEMOMETER:
