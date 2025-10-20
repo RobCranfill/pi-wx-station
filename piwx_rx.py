@@ -6,7 +6,9 @@
     (c)2025 rob cranfill
     See https://github.com/RobCranfill/pi-wx-station
 
-    Version 2: uncouple data reception and display.
+    Version 2: TFT test
+        - Note: remember that the display font only has 0-9 and "M" in it!!
+
 """
 
 # stdlibs
@@ -25,7 +27,8 @@ import adafruit_vcnl4020
 import neopixel
 
 # mine
-import LEDMatrix
+# import LEDMatrix
+import TFT_22_piwx
 
 import piwx_constants
 import moving_average
@@ -69,11 +72,8 @@ def get_message(rfm):
 
     # Look for a new packet - wait up to given timeout
     print("\nListening...")
-
-    # TODO: set LISTEN_AGAIN param (that's not it) to False
-    
     packet = rfm.receive(timeout=LISTEN_TIMEOUT)
-    # print(" Got a packet?")
+    # print(" Got a packet or timed out....")
 
     # If no packet was received after the timeout then None is returned.
     result = None
@@ -99,11 +99,17 @@ def init_hardware():
     RESET = digitalio.DigitalInOut(board.RFM_RST)
 
     # Initialize RFM69 radio
-    rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET, 
+    rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET,
                                piwx_constants.RADIO_FREQ_MHZ, encryption_key=piwx_constants.ENCRYPTION_KEY)
     # show_radio_status(rfm)
 
-    leds = LEDMatrix.LEDMatrix()
+    # leds = LEDMatrix.LEDMatrix()
+    tft = TFT_22_piwx.TFT22PiWX(0x_00_00_00)
+
+    tft.set_text("OK")
+    tft.set_text_color(0x_00FF00)
+    print("TFT OK?")
+    time.sleep(5)
 
     # Initialize VCNL4020 light sensor.
     vcln = None
@@ -114,7 +120,7 @@ def init_hardware():
     except:
         print("No light sensor? Continuing....")
 
-    return rfm, leds, vcln
+    return rfm, tft, vcln
 
 
 def get_brightness_value(light_sensor):
@@ -159,7 +165,7 @@ def initial_dict():
     return d
 
 
-def update_dict(rfm, dict, missed_packet_count):
+def update_dict_from_radio(rfm, dict, missed_packet_count):
     """Return (new dictionary, missed packet count)."""
 
     # Get a radio packet.
@@ -186,29 +192,55 @@ def update_dict(rfm, dict, missed_packet_count):
             if len(data_val) < 2:
                 data_val = ' ' + data_val
             dict[k] = data_val
-            print(f" * update_dict assigning {k} = '{dict[k]}'")
-        print(f" update_dict: {dict=}")
+            print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
+        print(f" update_dict_from_radio: {dict=}")
 
     return dict, missed_packet_count
 
-def update_display(led, two_chars, is_temperature, missed_packets):
+
+def update_display(tft, text, is_temperature, missed_packets):
     """Update all the things."""
 
-    if len(two_chars) < 2:
-        two_chars = " " + two_chars
+    print(f" DISPLAY: '{text}' {is_temperature}")
 
-    print(f" DISPLAY: '{two_chars}' {is_temperature}")
+    tft.set_text(text)
 
-    led.show_chars(two_chars)
-    led.set_mode_indicator(is_temperature)
-    led.set_aux_indicator_h(missed_packets)
+    # led.set_mode_indicator(is_temperature)
+    # led.set_aux_indicator_h(missed_packets)
 
+
+def test_tft_display(display):
+
+    display.set_text("00")
+
+    is_temperaure = True
+    while True:
+        if is_temperaure:
+            t = random.randrange(25, 88)
+            display.set_text_color(0x_00FF00)
+            print(f" * Displaying '{t}'...")
+            display.set_text(str(t))
+            # tft.set_temp_wind_icon(1)
+        else:
+            t = random.randrange(0, 25)
+            display.set_text_color(0x_0000FF)
+            print(f" * Displaying '{t}'...")
+            display.set_text(str(t))
+            # tft.set_temp_wind_icon(0)
+
+        is_temperaure = not is_temperaure
+        time.sleep(5)
+
+
+# TODO: 1) why the delay/missing display at startup? 2) why CS collision?
 
 def run():
-    """Run this loop forever."""
+
     DISPLAY_WAIT = 3
 
-    radio, led_matrix, sensor = init_hardware()
+    radio, tft_display, sensor = init_hardware()
+    # test_tft_display(tft_display)
+
     missed_packets = 0
 
     data_dict = initial_dict()
@@ -217,9 +249,10 @@ def run():
     averager = moving_average.moving_average(WIND_MOVING_AVG_SAMPLES)
     print(f"* Averaging wind readings over {WIND_MOVING_AVG_SAMPLES} samples.")
 
+    # Run this loop forever.
     while True:
 
-        data_dict, missed_packets = update_dict(radio, data_dict, missed_packets)
+        data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 
         # we can't treat T and W the same any more :-/
 
@@ -227,7 +260,9 @@ def run():
         print()
         print(" ** Display temp:")
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
-        update_display(led_matrix, temp_str, True, missed_packets)
+
+        update_display(tft_display, temp_str, True, missed_packets)
+
         time.sleep(DISPLAY_WAIT)
 
         # Wind needs massaging (only latest data point was sent; we want the average)
@@ -243,15 +278,17 @@ def run():
 
             # to display average:
             avg = averager.update_moving_average(wind_val)
-            print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SECONDS} second average now {avg}")
+            print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg}")
             wind_str = f"{avg:2.0f}"
 
-        update_display(led_matrix, wind_str, False, missed_packets)
+        update_display(tft_display, wind_str, False, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
 
     # end run()
 
+
+run()
 
 # If we just import this module, this code runs.
 # Is this the best way to do this???
@@ -267,9 +304,9 @@ while True:
 
 
 print("DONE!")
-# while True:
-#     pass
+while True:
+    pass
 
 
-def test():
-    LEDMatrix.test()
+# def test():
+#     LEDMatrix.test()
