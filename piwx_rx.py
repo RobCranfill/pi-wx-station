@@ -106,10 +106,9 @@ def init_hardware():
     # leds = LEDMatrix.LEDMatrix()
     tft = TFT_22_piwx.TFT22PiWX(0x_00_00_00)
 
-    tft.set_text("OK")
+    tft.set_text("99")
     tft.set_text_color(0x_00FF00)
-    print("TFT OK?")
-    time.sleep(5)
+    tft.refresh()
 
     # Initialize VCNL4020 light sensor.
     vcln = None
