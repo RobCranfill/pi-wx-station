@@ -19,14 +19,16 @@ import adafruit_ili9341
 #   otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf
 # FONT_PATH = "fonts/LeagueGothic-Regular-220.bdf"
 # FONT_PATH = "fonts/LeagueGothicMedium-220-digits.bdf"
-FONT_PATH = "fonts/LeagueSpartanBold-220-digits.bdf"
+DEFAULT_FONT_PATH = "fonts/LeagueSpartanBold-220-digits.bdf"
+
 
 HEIGHT = 240
 WIDTH  = 320
 
 class TFT22PiWX():
+    """"Driver for Adafruit 2.2" TFT display."""
 
-    def __init__(self, rgb_background):
+    def __init__(self, rgb_background, font_path=DEFAULT_FONT_PATH):
                 
         # Release any resources currently in use for the displays
         displayio.release_displays()
@@ -82,28 +84,33 @@ class TFT22PiWX():
 
 
         # Create the text label
-        font_to_use = bitmap_font.load_font(FONT_PATH)
+        font_to_use = bitmap_font.load_font(font_path)
 
-        # for LeagueGothicMedium-220-digits
-        text_area = label.Label(font_to_use, color=0xFFFFFF, x=30, y=85)
+        # # for LeagueGothicMedium-220-digits
+        # text_area = label.Label(font_to_use, color=0xFFFFFF, x=30, y=85)
 
         # for LeagueSpartanBold-220-digits
         text_area = label.Label(font_to_use, color=0xFFFFFF, x=-5, y=100)
 
-
         splash.append(text_area)
-
         self._text_area = text_area
-    
+
+
     def set_text(self, text):
+        """Set the text to display. '0-9' (and 'M', if that's useful) only! """
         self._text_area.text = text
-        self._display.refresh()
+        # self._display.refresh()
 
     def set_text_color(self, rgb_color):
+        """Set to the indicated RGB color."""
         self._text_area.color = rgb_color
+        # self._display.refresh() # needed??
 
-    def set_temp_wind_icon(self, icon_index):
-        self._sprite[0] = icon_index
+    def refresh(self):
+        self._display.refresh()
+
+    # def set_temp_wind_icon(self, icon_index):
+    #     self._sprite[0] = icon_index
 
 
 def test():

@@ -204,6 +204,12 @@ def update_display(tft, text, is_temperature, missed_packets):
     print(f" DISPLAY: '{text}' {is_temperature}")
 
     tft.set_text(text)
+    if is_temperature:
+        tft.set_text_color(0x00FF00)
+    else:
+        tft.set_text_color(0x0000FF)
+    
+    tft.refresh()
 
     # led.set_mode_indicator(is_temperature)
     # led.set_aux_indicator_h(missed_packets)
