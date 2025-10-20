@@ -63,3 +63,19 @@ When using the pulse-type wind speed sensor, connect the black wire to the power
 
 ### Helpful article
  * https://how2electronics.com/interfacing-anemometer-npn-pulse-output-with-arduino/
+
+
+### Notes on creating a font for TFT display
+
+1) Create a bitmap
+	
+	otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf
+
+2) Remove all but digits and "M", using FontForge
+ 
+	- Open bdf file
+	- Select 0-9, M, and ' ' (space)
+	- Invert selection
+	- Encoding / Detach & Remove Glyphs... 
+	- Export font (er, it's not called that!)
+
