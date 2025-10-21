@@ -28,7 +28,7 @@ import neopixel
 
 # mine
 # import LEDMatrix
-import TFT_22_piwx
+import tft_22
 
 import piwx_constants
 import moving_average
@@ -105,7 +105,7 @@ def init_hardware():
     # show_radio_status(rfm)
 
     # leds = LEDMatrix.LEDMatrix()
-    tft = TFT_22_piwx.TFT22PiWX(0x_00_00_00)
+    tft = tft_22.tft_22(0x_00_00_00)
 
     tft.set_status_text("Starting up...")
     # tft.set_text_color(0x_00FF00)

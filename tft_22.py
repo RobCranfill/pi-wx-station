@@ -32,7 +32,7 @@ DISPLAY_HEIGHT = 240
 DISPLAY_WIDTH  = 320
 
 
-class TFT22PiWX():
+class tft_22():
     """"Driver for Adafruit 2.2" TFT display."""
 
     def __init__(self, rgb_background, font_path=DEFAULT_FONT_PATH):
