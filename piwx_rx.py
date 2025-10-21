@@ -6,8 +6,7 @@
     (c)2025 rob cranfill
     See https://github.com/RobCranfill/pi-wx-station
 
-    Version 2: TFT test
-        - Note: remember that the display font only has 0-9, " " and "M" in it!!
+    Version 2: Using a 2.2" TFT display - much nicer!
 
 """
 
@@ -26,7 +25,7 @@ import adafruit_rfm69
 import adafruit_vcnl4020
 import neopixel
 
-# mine
+# our libs
 import moving_average
 import piwx_constants
 import tft_22
@@ -71,7 +70,7 @@ def get_message(rfm):
 
     # Look for a new packet - wait up to given timeout
     print("\nListening...")
-    packet = rfm.receive(timeout=LISTEN_TIMEOUT)
+    packet = rfm.receive(timeout=LISTEN_TIMEOUT, keep_listening=False)
     # print(" Got a packet or timed out....")
 
     # If no packet was received after the timeout then None is returned.
@@ -106,7 +105,6 @@ def init_hardware():
     tft = tft_22.tft_22(0x_00_00_00)
 
     tft.set_status_text("Starting up...")
-    # tft.set_text_color(0x_00FF00)
     tft.refresh()
 
     # Does this help? no, not obviously, and adds >10 seconds to startup.
@@ -124,7 +122,7 @@ def init_hardware():
         vcln.lux_enabled = True
         vcln.proximity_enabled = False
     except:
-        print("No light sensor? Continuing....")
+        print("*** No light sensor? Continuing....")
 
     return rfm, tft, vcln
 
@@ -189,39 +187,29 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
             dict = initial_dict()
 
     else:
-        print("Got data packet - resetting missed packet count.")
+        # print("Got data packet - resetting missed packet count.")
         missed_packet_count = 0
-        # led_matrix.set_aux_indicator(0)
 
         for k in ['T', 'W']:
-
-            #TODO: shouldn't these just be integers?
-
             data_val = str(data[k])
-            # if len(data_val) < 2:
-            #     data_val = ' ' + data_val
             dict[k] = data_val
-            print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
+            # print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
         print(f" update_dict_from_radio: {dict=}")
 
     return dict, missed_packet_count
 
 
 def update_display(tft, text, is_temperature, missed_packets):
-    """Update all the things."""
+    """Update all the things. TODO: Missed packets is displayed elsewhere. fix?"""
 
-    print(f" DISPLAY: '{text}' {is_temperature}")
-
+    # print(f" DISPLAY: '{text}' {is_temperature}")
     tft.set_text(text)
     if is_temperature:
         tft.set_text_color(0x00FF00)
     else:
         tft.set_text_color(0x0000FF)
-    
-    tft.refresh()
 
-    # led.set_mode_indicator(is_temperature)
-    # led.set_aux_indicator_h(missed_packets)
+    tft.refresh()
 
 
 def test_tft_display(display):
@@ -248,11 +236,14 @@ def test_tft_display(display):
 
 
 def show_status_info(radio, display, missed):
+    """Update some status info. You need to call update() on the display for this to show."""
 
-    # If we do this *before* update_display, we can let that method do the update()
-    display.set_status_text(f"{missed} missed packets; RSSI {radio.rssi}; {gc.mem_free()} bytes free")
+    display.set_status_text(f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
 
 
+# 
+# Main loop, that we never exit.
+#
 def run():
 
     missed_packets = 0
@@ -260,7 +251,6 @@ def run():
     radio, tft_display, sensor = init_hardware()
 
     data_dict = initial_dict()
-    print(f" initial {data_dict=}")
 
     averager = moving_average.moving_average(WIND_MOVING_AVG_SAMPLES)
     print(f"* Averaging wind readings over {WIND_MOVING_AVG_SAMPLES} samples.")
@@ -273,8 +263,6 @@ def run():
         # we can't treat T and W the same any more :-/
 
         # Temp is always good to display.
-        print()
-        print(" ** Display temp:")
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
         show_status_info(radio, tft_display, missed_packets)
@@ -284,7 +272,6 @@ def run():
 
         # Wind needs massaging (only latest data point was sent; we want the average)
         #
-        print(" ** Display wind:")
         w_data = data_dict[piwx_constants.DICT_KEY_WIND]
         if w_data == piwx_constants.DICT_VALUE_NO_ANEMOMETER:
             wind_str = w_data
@@ -307,7 +294,8 @@ def run():
     # end run()
 
 
-run()
+# Should we just do this? There is no exception handling in that loop.
+# run()
 
 # If we just import this module, this code runs.
 # Is this the best way to do this???
@@ -318,7 +306,7 @@ while True:
     except KeyboardInterrupt:
         break
     except Exception as e:
-        print(f"Got exception {e}; going around again!")
+        print(f"*** Got exception {e}; going around again!")
         traceback.print_exception(e)
 
 
