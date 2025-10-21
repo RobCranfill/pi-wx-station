@@ -14,15 +14,13 @@ import random
 import time
 
 import board
-import fourwire
 import displayio
+import fourwire
 import terminalio
 
-from adafruit_display_text import label
+from adafruit_display_text import bitmap_label
 from adafruit_bitmap_font import bitmap_font
 import adafruit_imageload
-
-
 import adafruit_ili9341
 
 
@@ -75,13 +73,13 @@ class tft_22():
         # text_area = label.Label(font_to_use, color=0xFFFFFF, x=30, y=85)
 
         # for LeagueSpartanBold-220-digits
-        text_area = label.Label(display_font, color=0xFFFFFF, x=-5, y=100)
+        text_area = bitmap_label.Label(display_font, color=0xFFFFFF, x=-5, y=100)
 
         splash.append(text_area)
         self._text_area = text_area
 
 
-        self._text_area_status = label.Label(terminalio.FONT, text="Hunky dory!", 
+        self._text_area_status = bitmap_label.Label(terminalio.FONT, text="Hunky dory!", 
                                              color=0xFFFFFF, x=10, y=DISPLAY_HEIGHT-10)
         splash.append(self._text_area_status)
 

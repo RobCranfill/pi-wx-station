@@ -12,26 +12,24 @@
 """
 
 # stdlibs
-import board
-import digitalio
+import gc
 import json
-import os
 import random
 import time
 import traceback
 
+import board
+import digitalio
+
 # adafruit libs
 import adafruit_rfm69
-from adafruit_ht16k33 import matrix
 import adafruit_vcnl4020
 import neopixel
 
 # mine
-# import LEDMatrix
-import tft_22
-
-import piwx_constants
 import moving_average
+import piwx_constants
+import tft_22
 
 
 
@@ -252,7 +250,7 @@ def test_tft_display(display):
 def show_status_info(radio, display, missed):
 
     # If we do this *before* update_display, we can let that method do the update()
-    display.set_status_text(f"{missed} missed packets; RSSI {radio.rssi}")
+    display.set_status_text(f"{missed} missed packets; RSSI {radio.rssi}; {gc.mem_free()} bytes free")
 
 
 def run():
