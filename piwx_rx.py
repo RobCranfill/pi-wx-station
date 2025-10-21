@@ -111,6 +111,14 @@ def init_hardware():
     # tft.set_text_color(0x_00FF00)
     tft.refresh()
 
+    # Does this help? no, not obviously, and adds >10 seconds to startup.
+    #
+    # print("pre-loading glyphs....")
+    # t_start = time.monotonic()
+    # for i in range(10):
+    #     tft.set_text(str(i))
+    # print(f"done in {time.monotonic() - t_start} seconds")
+
     # Initialize VCNL4020 light sensor.
     vcln = None
     try:
@@ -244,15 +252,14 @@ def test_tft_display(display):
 def show_status_info(radio, display, missed):
 
     # If we do this *before* update_display, we can let that method do the update()
-    display.set_status_text(f"{radio.rssi=}; {missed} missed packets.")
+    display.set_status_text(f"{missed} missed packets; RSSI {radio.rssi}")
 
 
 def run():
 
-    radio, tft_display, sensor = init_hardware()
-    # test_tft_display(tft_display)
-
     missed_packets = 0
+
+    radio, tft_display, sensor = init_hardware()
 
     data_dict = initial_dict()
     print(f" initial {data_dict=}")
