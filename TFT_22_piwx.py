@@ -10,12 +10,14 @@
     Also, only required glyphs (0-9, ' ', 'M") are kept in the font file, to keep it small.
 
 """
-import board
-import displayio
-import time
 import random
+import time
 
-from fourwire import FourWire
+import board
+import fourwire
+import displayio
+import terminalio
+
 from adafruit_display_text import label
 from adafruit_bitmap_font import bitmap_font
 import adafruit_imageload
@@ -45,7 +47,7 @@ class TFT22PiWX():
         tft_tcs = board.D11 # LCD CS = display chip select
         # tft_sdcs = board.D10 # SD card chip select (unused)
 
-        display_bus = FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
+        display_bus = fourwire.FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
         display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
         # we need to do manual refresh or the display gets all wonky
@@ -65,38 +67,24 @@ class TFT22PiWX():
         splash.append(background_sprite)
 
 
-    # Not the way to go?
-        # # Load the sprite sheet (bitmap)
-        # sprite_sheet, palette = adafruit_imageload.load("/sprite_sheet_1.bmp",
-        #                                         bitmap=displayio.Bitmap,
-        #                                         palette=displayio.Palette)
-
-        # # Create a sprite (tilegrid)
-        # sprite = displayio.TileGrid(sprite_sheet, pixel_shader=palette,
-        #                             width = 1, height = 1,
-        #                             tile_width = 64, tile_height = 64)
-        # self._sprite = sprite
-        # # sprite[0] = 0
-
-        # sprite_group = displayio.Group(scale=1)
-        # sprite_group.append(sprite)
-        # sprite_group.x = 250
-        # sprite_group.y =  20
-        # splash.append(sprite_group)
-
-
-        # Create the text label
+        # Create the main text label.
         # TODO: catch missing file?
-        font_to_use = bitmap_font.load_font(font_path)
+        display_font = bitmap_font.load_font(font_path)
 
         # # for LeagueGothicMedium-220-digits
         # text_area = label.Label(font_to_use, color=0xFFFFFF, x=30, y=85)
 
         # for LeagueSpartanBold-220-digits
-        text_area = label.Label(font_to_use, color=0xFFFFFF, x=-5, y=100)
+        text_area = label.Label(display_font, color=0xFFFFFF, x=-5, y=100)
 
         splash.append(text_area)
         self._text_area = text_area
+
+
+        self._text_area_status = label.Label(terminalio.FONT, text="Hunky dory!", 
+                                             color=0xFFFFFF, x=10, y=DISPLAY_HEIGHT-10)
+        splash.append(self._text_area_status)
+
 
 
     def set_text(self, text):
@@ -107,20 +95,18 @@ class TFT22PiWX():
         """Set the text to the indicated RGB color. You must refresh it when ready."""
         self._text_area.color = rgb_color
 
+    def set_status_text(self, text):
+        """The little text area at the bottom. You must refresh this."""
+        self._text_area_status.text = text
+
     def refresh(self):
         """Only repaint the display when done making changes, to make it look nicer."""
         self._display.refresh()
-
-    # def set_temp_wind_icon(self, icon_index):
-    #     self._sprite[0] = icon_index
 
 
 def test():
 
     print(f"Running {__name__}.test() ...")
-
-    # not in the font, and no room on screen anyway
-    # degree = '\u00b0'
 
     tft = TFT22PiWX(0x_00_00_00)
     # tft.set_text_color(0x_00_00_D0)
@@ -131,12 +117,12 @@ def test():
             t = random.randrange(25, 88)
             tft.set_text_color(0x_00FF00)
             tft.set_text(str(t))
-            # tft.set_temp_wind_icon(1)
+            tft.refresh()
         else:
             t = random.randrange(0, 25)
             tft.set_text_color(0x_0000FF)
             tft.set_text(str(t))
-            # tft.set_temp_wind_icon(0)
+            tft.refresh()
 
         is_temperaure = not is_temperaure
         time.sleep(5)

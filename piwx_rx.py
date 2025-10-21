@@ -37,11 +37,12 @@ import moving_average
 
 ########################################################
 
+# Pause between showing the various measurements, in seconds.
+DISPLAY_WAIT = 3
 
 # TODO: this may be important.
 # We send every X seconds, we should probably wait for 2X seconds??
 LISTEN_TIMEOUT  = 8
-DISPLAY_TIMEOUT = 2
 
 # we will re-use old data for this many missed packets
 MAX_MISSED_PACKETS = 8
@@ -106,8 +107,8 @@ def init_hardware():
     # leds = LEDMatrix.LEDMatrix()
     tft = TFT_22_piwx.TFT22PiWX(0x_00_00_00)
 
-    tft.set_text("99")
-    tft.set_text_color(0x_00FF00)
+    tft.set_status_text("Starting up...")
+    # tft.set_text_color(0x_00FF00)
     tft.refresh()
 
     # Initialize VCNL4020 light sensor.
@@ -240,11 +241,13 @@ def test_tft_display(display):
         time.sleep(5)
 
 
-# TODO: 1) why the delay/missing display at startup? 2) why CS collision?
+def show_status_info(radio, display, missed):
+
+    # If we do this *before* update_display, we can let that method do the update()
+    display.set_status_text(f"{radio.rssi=}; {missed} missed packets.")
+
 
 def run():
-
-    DISPLAY_WAIT = 3
 
     radio, tft_display, sensor = init_hardware()
     # test_tft_display(tft_display)
@@ -269,6 +272,7 @@ def run():
         print(" ** Display temp:")
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
+        show_status_info(radio, tft_display, missed_packets)
         update_display(tft_display, temp_str, True, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
@@ -290,6 +294,7 @@ def run():
             print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg}")
             wind_str = f"{avg:2.0f}"
 
+        show_status_info(radio, tft_display, missed_packets)
         update_display(tft_display, wind_str, False, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
