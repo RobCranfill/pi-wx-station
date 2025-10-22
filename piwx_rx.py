@@ -8,6 +8,13 @@
 
     Version 2: Using a 2.2" TFT display - much nicer!
 
+FIXME:
+    - nicer update to display?
+    - missed packets not working
+    - wrap whole thing in try/catch
+      - but don't re-init the hardware on another go-around!
+    - if missed packet, don't re-compute average wind
+
 """
 
 # stdlibs
@@ -68,7 +75,10 @@ def show_radio_status(radio):
 def get_message(rfm):
     '''Return the dictionary of values received by the radio, or None'''
 
-    # Look for a new packet - wait up to given timeout
+    # Look for a new packet - wait up to given timeout.
+    
+    # FIXME: .receive() has thrown UnicodeError once.
+
     print("\nListening...")
     packet = rfm.receive(timeout=LISTEN_TIMEOUT, keep_listening=False)
     # print(" Got a packet or timed out....")
@@ -93,8 +103,15 @@ def get_message(rfm):
 def init_hardware():
     """Init the radio, display, and light sensor and return them."""
 
-    CS = digitalio.DigitalInOut(board.RFM_CS)
-    RESET = digitalio.DigitalInOut(board.RFM_RST)
+    rfm = None
+    CS = None
+    RESET = None
+    try:
+        CS = digitalio.DigitalInOut(board.RFM_CS)
+        RESET = digitalio.DigitalInOut(board.RFM_RST)
+    except Exception as e:
+        print(f"*** init_hardware: exception {e}!")
+        traceback.print_exception(e)
 
     # Initialize RFM69 radio
     rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET,
@@ -172,13 +189,16 @@ def initial_dict():
 def update_dict_from_radio(rfm, dict, missed_packet_count):
     """Return (new dictionary, missed packet count)."""
 
+    # # test exception handling
+    # if random.randint(0, 10) > 2:
+    #     raise ValueError('Test exception in radio handler.')
+
     # Get a radio packet.
     #
     data = get_message(rfm)
     print(f" Received: {data=}")
 
-    # For testing, miss 80% of packets
-    if data is None: # or random.randint(0, 10) > 2:
+    if data is None: # or random.randint(0, 10) > 2: # For testing, miss 80% of packets?
         missed_packet_count += 1
         print(f"** missing packet #{missed_packet_count}")
 
@@ -194,7 +214,7 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
             data_val = str(data[k])
             dict[k] = data_val
             # print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
-        print(f" update_dict_from_radio: {dict=}")
+        # print(f" update_dict_from_radio: {dict=}")
 
     return dict, missed_packet_count
 
@@ -242,14 +262,11 @@ def show_status_info(radio, display, missed):
 
 
 # 
-# Main loop, that we never exit.
+# Main loop - only exits if exception thrown.
 #
-def run():
+def run(radio, tft_display, sensor):
 
     missed_packets = 0
-
-    radio, tft_display, sensor = init_hardware()
-
     data_dict = initial_dict()
 
     averager = moving_average.moving_average(WIND_MOVING_AVG_SAMPLES)
@@ -260,9 +277,7 @@ def run():
 
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 
-        # we can't treat T and W the same any more :-/
-
-        # Temp is always good to display.
+        # Temp is is just displayed "raw".
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
         show_status_info(radio, tft_display, missed_packets)
@@ -270,7 +285,7 @@ def run():
 
         time.sleep(DISPLAY_WAIT)
 
-        # Wind needs massaging (only latest data point was sent; we want the average)
+        # Wind needs massaging - display running average.
         #
         w_data = data_dict[piwx_constants.DICT_KEY_WIND]
         if w_data == piwx_constants.DICT_VALUE_NO_ANEMOMETER:
@@ -281,9 +296,9 @@ def run():
             # # to display most recent wind value:
             # wind_str = str(int(wind_val))
 
-            # to display average:
+            # to display wind average:
             avg = averager.update_moving_average(wind_val)
-            print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg}")
+            print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg:0.1f}")
             wind_str = f"{avg:2.0f}"
 
         show_status_info(radio, tft_display, missed_packets)
@@ -294,26 +309,26 @@ def run():
     # end run()
 
 
-# Should we just do this? There is no exception handling in that loop.
-# run()
+def main_entry():
+    """This catches exceptions and re-runs that which can be re-run."""
 
-# If we just import this module, this code runs.
-# Is this the best way to do this???
-#
-while True:
-    try:
-        run()
-    except KeyboardInterrupt:
-        break
-    except Exception as e:
-        print(f"*** Got exception {e}; going around again!")
-        traceback.print_exception(e)
+    # Only initialize the hardware once.
+    radio, tft_display, sensor = init_hardware()
+
+    while True:
+        try:
+            run(radio, tft_display, sensor)
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            print(f"*** Got exception {e}; going around again!")
+            traceback.print_exception(e)
+            time.sleep(1) # during testing this goes too fast!
+
+    print("DONE!")
+    while True:
+        pass
 
 
-print("DONE!")
-while True:
-    pass
+main_entry()
 
-
-# def test():
-#     LEDMatrix.test()

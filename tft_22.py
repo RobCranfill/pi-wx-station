@@ -79,7 +79,7 @@ class tft_22():
         self._text_area = text_area
 
 
-        self._text_area_status = bitmap_label.Label(terminalio.FONT, text="Hunky dory!", 
+        self._text_area_status = bitmap_label.Label(terminalio.FONT, text=f"{__name__} OK", 
                                              color=0xFFFFFF, x=10, y=DISPLAY_HEIGHT-10)
         splash.append(self._text_area_status)
 
@@ -106,7 +106,7 @@ def test():
 
     print(f"Running {__name__}.test() ...")
 
-    tft = TFT22PiWX(0x_00_00_00)
+    tft = tft_22(0x_00_00_00)
     # tft.set_text_color(0x_00_00_D0)
 
     is_temperaure = True
