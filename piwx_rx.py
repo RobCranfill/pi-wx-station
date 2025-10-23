@@ -14,6 +14,7 @@ FIXME:
     - wrap whole thing in try/catch
       - but don't re-init the hardware on another go-around!
     - if missed packet, don't re-compute average wind
+    - The "no value" value glyphs ("?T" or the like) aren't in the font!
 
 """
 
@@ -103,22 +104,21 @@ def get_message(rfm):
 def init_hardware():
     """Init the radio, display, and light sensor and return them."""
 
-    rfm = None
-    CS = None
-    RESET = None
-    try:
-        CS = digitalio.DigitalInOut(board.RFM_CS)
-        RESET = digitalio.DigitalInOut(board.RFM_RST)
-    except Exception as e:
-        print(f"*** init_hardware: exception {e}!")
-        traceback.print_exception(e)
+# rfm = None
+# CS = None
+# RESET = None
+# try:
+    CS = digitalio.DigitalInOut(board.RFM_CS)
+    RESET = digitalio.DigitalInOut(board.RFM_RST)
+# except Exception as e:
+#     print(f"*** init_hardware: exception {e}!")
+#     traceback.print_exception(e)
 
     # Initialize RFM69 radio
     rfm = adafruit_rfm69.RFM69(board.SPI(), CS, RESET,
                                piwx_constants.RADIO_FREQ_MHZ, encryption_key=piwx_constants.ENCRYPTION_KEY)
     # show_radio_status(rfm)
 
-    # leds = LEDMatrix.LEDMatrix()
     tft = tft_22.tft_22(0x_00_00_00)
 
     tft.set_status_text("Starting up...")
@@ -166,12 +166,6 @@ def get_brightness_value(light_sensor):
     # print(f" Brightness: {lux=} -> {scaled_int=}")
     return scaled_int
 
-# def count_to_mph(count):
-#     """Return integer MPH as a string"""
-
-#     mph = int(count / 15)
-#     print(f" count_to_mph: {count=} -> {mph=}")
-#     return str(mph)
 
 def c_to_f(c):
     """Return farenheit from celsius"""
@@ -198,7 +192,7 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
     data = get_message(rfm)
     print(f" Received: {data=}")
 
-    if data is None: # or random.randint(0, 10) > 2: # For testing, miss 80% of packets?
+    if data is None or random.randint(0, 10) > 1: # For testing, miss 80% of packets?
         missed_packet_count += 1
         print(f"** missing packet #{missed_packet_count}")
 

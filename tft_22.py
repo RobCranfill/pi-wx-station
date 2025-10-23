@@ -24,7 +24,7 @@ import adafruit_imageload
 import adafruit_ili9341
 
 
-DEFAULT_FONT_PATH = "fonts/LeagueSpartanBold-220-digits.bdf"
+DEFAULT_FONT_PATH = "fonts/LeagueSpartanBold-piwx.bdf"
 
 DISPLAY_HEIGHT = 240
 DISPLAY_WIDTH  = 320
