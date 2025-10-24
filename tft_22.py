@@ -88,11 +88,11 @@ class tft_22():
         splash.append(self._text_area_status)
 
 
-    def set_backlight(self, duty_cycle):
-        """Duty cycle is 0.0 thru 1.0"""
+    def set_backlight(self, duty_cycle_percent):
+        """Duty cycle is 0 thru 10"""
 
-        f_dc = int(65535 * duty_cycle)
-        print(f"Setting set_backlight {duty_cycle=} or {f_dc=}")
+        f_dc = int(65535 * duty_cycle_percent / 100)
+        print(f"Setting set_backlight {duty_cycle_percent=}% or {f_dc=}")
         self._backlight.duty_cycle = f_dc
 
 

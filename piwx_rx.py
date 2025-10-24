@@ -144,27 +144,25 @@ def init_hardware():
     return rfm, tft, vcln
 
 
-def get_brightness_value(light_sensor):
-    """Calculate a value 0-15 for display brighness acccording to ambient light."""
+def set_brightness_value(tft, light_sensor):
+    """Calculate a value 0-100 for display brighness acccording to ambient light."""
 
-    # TODO: Not sure what max possible lux is.
-    #
-    if light_sensor is None:
-        lux = 1000 # full brightness, sorta
-    else:
+    lux_percent = 100 # full brightness
+    if light_sensor is not None:
+
         lux = light_sensor.lux
+        # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
+        # This seems OK, but not very scientific
+        # 1000 seems low - let's try 2000?
+        scaled = lux / 2000
+        if scaled > 1:
+            scaled = 1
 
-    # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
-    # This seems OK, but not very scientific
-    # 1000 seems low. 4000?
-    scaled = lux / 4000
-    if scaled > 1:
-        scaled = 1
+        # Then scale to 0-15, the display's range.
+        lux_percent = int(100 * scaled)
+        print(f" Brightness: {lux=} -> {lux_percent=}")
 
-    # Then scale to 0-15, the display's range.
-    scaled_int = int(15 * scaled)
-    # print(f" Brightness: {lux=} -> {scaled_int=}")
-    return scaled_int
+    tft.set_backlight(lux_percent)
 
 
 def c_to_f(c):
@@ -255,6 +253,13 @@ def show_status_info(radio, display, missed):
     display.set_status_text(f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
 
 
+# def adjust_diplay_from_light_sensor(tft, vcnl):
+#     """Adjust the display according to the ambient light level."""
+#     # lux seems to be almost 0 in the dark, to ??? in bright sunlight
+#     print(f" **** {vcnl.proximity=} {vcnl.lux=}")
+
+
+
 # 
 # Main loop - only exits if exception thrown.
 #
@@ -270,12 +275,16 @@ def run(radio, tft_display, sensor):
     while True:
 
         # # Testing dimming
-        # brightness = random.choice([10, 25, 50, 100]) / 100
+        # brightness = random.choice([10, 25, 50, 100])
         # print(f"Setting brightness to {brightness}...")
         # tft_display.set_backlight(brightness)
+        #
+        set_brightness_value(tft_display, sensor)
 
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 
+        set_brightness_value(tft_display, sensor)
+    
         # Temp is is just displayed "raw".
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
@@ -283,6 +292,8 @@ def run(radio, tft_display, sensor):
         update_display(tft_display, temp_str, True, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
+
+        set_brightness_value(tft_display, sensor)
 
         # Wind needs massaging - display running average.
         #
@@ -318,16 +329,16 @@ def main_entry():
         try:
             run(radio, tft_display, sensor)
         except KeyboardInterrupt:
+            print("\n* Got ctrl-C!\n")
             break
         except Exception as e:
             print(f"*** Got exception {e}; going around again!")
             traceback.print_exception(e)
             time.sleep(1) # during testing this goes too fast!
 
-    print("DONE!")
-    while True:
-        pass
+    # print("Done! Hit ctrl-C again to exit.")
+    # while True:
+    #     pass
 
 
 main_entry()
-
