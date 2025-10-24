@@ -192,7 +192,7 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
     data = get_message(rfm)
     print(f" Received: {data=}")
 
-    if data is None or random.randint(0, 10) > 1: # For testing, miss 80% of packets?
+    if data is None: # or random.randint(0, 10) > 1: # For testing, miss 80% of packets?
         missed_packet_count += 1
         print(f"** missing packet #{missed_packet_count}")
 
@@ -268,6 +268,10 @@ def run(radio, tft_display, sensor):
 
     # Run this loop forever.
     while True:
+
+        brightness = random.choice([10, 25, 50, 100]) / 100
+        print(f"Setting brightness to {brightness}...")
+        tft_display.set_backlight(brightness)
 
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 

@@ -16,6 +16,7 @@ import time
 import board
 import displayio
 import fourwire
+import pwmio
 import terminalio
 
 from adafruit_display_text import bitmap_label
@@ -44,7 +45,13 @@ class tft_22():
         tft_reset = board.D9
         tft_tcs = board.D11 # LCD CS = display chip select
         # tft_sdcs = board.D10 # SD card chip select (unused)
+        tft_bl = board.D12 # we need a PWM-capable pin
 
+
+        self._backlight = pwmio.PWMOut(tft_bl, duty_cycle=50, frequency=1000, variable_frequency=True)
+
+
+        
         display_bus = fourwire.FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
         display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
@@ -83,6 +90,13 @@ class tft_22():
                                              color=0xFFFFFF, x=10, y=DISPLAY_HEIGHT-10)
         splash.append(self._text_area_status)
 
+
+    def set_backlight(self, duty_cycle):
+        """Duty cycle is 0.0 thru 1.0"""
+
+        f_dc = int(65535 * duty_cycle)
+        print(f"Setting set_backlight {duty_cycle=} or {f_dc=}")
+        self._backlight.duty_cycle = f_dc
 
 
     def set_text(self, text):
