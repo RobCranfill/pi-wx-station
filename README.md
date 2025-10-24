@@ -7,24 +7,22 @@ I keep one running at the beach, and they keep dying due to
 the inclement weather; I'd like to be able to repair it rather
 than buy a new one every few years!
 
-The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
-
 
 # Method
-## Hardware:
+## Hardware
   * Two Adafruit Feather RP2040 RFM69 microcontrollers (Adafruit part #5712)
   * I2C-based temperature (optionally also pressure/humidity) sensor
   * Anemometer: Part number RS-FSJT-NPN, from Amazon (or see below)
+  * Adafruit 2.2" TFT LCD display - beautiful!
+  * A light sensor so we can dim the display as appropriate
+  * Antenna as needed; so far a quarter-wave wire antenna suffices (altho it may be marginal)
   * Low priority:
     * Wind vane (for wind direction)
     * Solar sensor
-  * Display is problematic - see below
-  * A light sensor to dim the display as appropriate
-  * Antenna as needed; so far a quarter-wave wire antenna suffices (altho it may be marginal)
 
 ## Software
-  * CircuitPython, of course! Up to version 10.0.0 used in development.
-  * Various Adafruit libraries; see 'requirements.txt' for output from 'circup'
+  * CircuitPython, of course! Up to version 10.x used in development.
+  * Various Adafruit libraries; see 'requirements.txt' for output from 'circup'.
 
 ## HW Notes
 | Anemometer | Signal | Feather |
@@ -33,6 +31,25 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 | Black  | Ground | GND
 | Blue   | signal | GPIO 13
 | Yellow | N/C    | N/C
+
+The TFT display uis now using a boatload of pins:
+| Feather | Signal | TFT display |
+| ------ | ------ | ------ |
+| Gnd  | Gnd | GND
+| 3v3  | 3v3 | VIN
+| -  | ? | D/C
+| D9 | Reset | RESET
+| -  | SD card SPI chip select - unused | SD CS
+| D11 | TFT SPI chip select | LCD CS
+| -  | SPI MCU Out | MOSI
+| -  | SPI MCU In | MISO
+| -  | SPI clock | SCK
+| D12  | Backlight PWM | BACKLIGHT
+
+Note that the RFM radio also uses the SPI bus so you have to avoid using its chip select line, D5 (SPI0 CS) :-/
+
+
+The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
 
 
 ## Thoughts
@@ -43,7 +60,6 @@ is needed. (An initial attempt to fix this involves upping the xmit power; we sh
 
 Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
 
-A nicer display would be, uh, nice.
 
 ## Version 2
 In order to support a more varied set of data points, take a somewhat more sophisticated approach:
@@ -77,5 +93,4 @@ When using the pulse-type wind speed sensor, connect the black wire to the power
 	- Select 0-9, M, and ' ' (space)
 	- Invert selection
 	- Encoding / Detach & Remove Glyphs... 
-	- Export font (er, it's not called that!)
-
+	- File / Generate Fonts...

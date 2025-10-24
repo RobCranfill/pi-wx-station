@@ -269,9 +269,10 @@ def run(radio, tft_display, sensor):
     # Run this loop forever.
     while True:
 
-        brightness = random.choice([10, 25, 50, 100]) / 100
-        print(f"Setting brightness to {brightness}...")
-        tft_display.set_backlight(brightness)
+        # # Testing dimming
+        # brightness = random.choice([10, 25, 50, 100]) / 100
+        # print(f"Setting brightness to {brightness}...")
+        # tft_display.set_backlight(brightness)
 
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 

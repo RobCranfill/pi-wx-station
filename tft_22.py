@@ -43,17 +43,15 @@ class tft_22():
 
         tft_dc = board.D6
         tft_reset = board.D9
+        # tft_sdcs = board.D10 # SD card chip select (unused so far)
         tft_tcs = board.D11 # LCD CS = display chip select
-        # tft_sdcs = board.D10 # SD card chip select (unused)
         tft_bl = board.D12 # we need a PWM-capable pin
 
-
-        self._backlight = pwmio.PWMOut(tft_bl, duty_cycle=50, frequency=1000, variable_frequency=True)
-
-
-        
         display_bus = fourwire.FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
         display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+
+        # We control the backlight brightness with this.
+        self._backlight = pwmio.PWMOut(tft_bl, duty_cycle=2**16-1, frequency=1000, variable_frequency=True)
 
         # we need to do manual refresh or the display gets all wonky
         display.auto_refresh = False
@@ -70,7 +68,6 @@ class tft_22():
 
         background_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
         splash.append(background_sprite)
-
 
         # Create the main text label.
         # TODO: catch missing file?
