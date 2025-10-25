@@ -52,8 +52,6 @@ MAX_RFM_MSG_LEN = 60
 # just test the sensors and data packing, or actually send data?
 ACTUALLY_SEND = True
 
-
-
 # endregion defines
 # region functions
 
@@ -85,7 +83,6 @@ def set_power_level(rfm, pixel):
 def init_radio(neo_pix):
     """Return the RFM object."""
 
-
     CS = digitalio.DigitalInOut(board.RFM_CS)
     RESET = digitalio.DigitalInOut(board.RFM_RST)
 
@@ -108,6 +105,7 @@ def init_radio(neo_pix):
     print("--------------------------------------------")
 
     return radio
+
 
 # Is this correct? oversimplistic? (it's assuming the count is linear w/r/t windspeed).
 # This comes from 
@@ -153,7 +151,7 @@ def update_data_dict(data_dict, sensor, anemom):
     print(f" {anemom_count=} -> {mph} MPH")
 
 
-    # # Send windspeed as a string, with 1/10th mph precision.
+    # Keep windspeed as a string, with 1/10th mph precision.
     data_dict[piwx_constants.DICT_KEY_WIND] = f"{mph:2.1f}"
 
     return data_dict
@@ -190,10 +188,11 @@ def main():
 
     while True:
 
+        # Create the data dictionary to send.
         data_dict = update_data_dict(data_dict, sensor, anemometer)
-        # if we don't do this we exceed 60 chars!
-        msg_to_send = json.dumps(data_dict).replace(" ", "")
 
+        # The message can get kinda long; remove un-needed spaces.
+        msg_to_send = json.dumps(data_dict).replace(" ", "")
 
         # Augment with some status data?
         uptime = time.time() - time_start
@@ -205,6 +204,9 @@ def main():
         # if radio is not None:
         #     print(f" CPU: {microcontroller.cpu.temperature:1.0f}C; radio: {radio.temperature:1.0f}C")
 
+        # Other things we could send: RSSI, power level.
+
+        # Only send extra stuff if we have room.
         if len(msg_augmented) <= MAX_RFM_MSG_LEN:
             msg_to_send = msg_augmented
         else:
