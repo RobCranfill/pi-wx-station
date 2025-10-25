@@ -145,21 +145,21 @@ def init_hardware():
 
 
 def set_brightness_value(tft, light_sensor):
-    """Calculate a value 0-100 for display brighness acccording to ambient light."""
+    """Set the display brighness acccording to ambient light."""
 
     lux_percent = 100 # full brightness
     if light_sensor is not None:
 
         lux = light_sensor.lux
+
         # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
         # This seems OK, but not very scientific
         # 1000 seems low - let's try 2000?
-        scaled = lux / 2000
-        if scaled > 1:
-            scaled = 1
-
-        # Then scale to 0-15, the display's range.
-        lux_percent = int(100 * scaled)
+        #
+        lux_scaled = min(lux/2000, 1)
+        lux_percent = int(100 * lux_scaled)
+        if lux_percent < 20: # ad hoc adjustment
+            lux_percent = 20
         print(f" Brightness: {lux=} -> {lux_percent=}")
 
     tft.set_backlight(lux_percent)
@@ -225,6 +225,7 @@ def update_display(tft, text, is_temperature, missed_packets):
 
 
 def test_tft_display(display):
+    """"This is only a test."""
 
     display.set_text("00")
 
@@ -253,14 +254,7 @@ def show_status_info(radio, display, missed):
     display.set_status_text(f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
 
 
-# def adjust_diplay_from_light_sensor(tft, vcnl):
-#     """Adjust the display according to the ambient light level."""
-#     # lux seems to be almost 0 in the dark, to ??? in bright sunlight
-#     print(f" **** {vcnl.proximity=} {vcnl.lux=}")
-
-
-
-# 
+#############################################################3
 # Main loop - only exits if exception thrown.
 #
 def run(radio, tft_display, sensor):
@@ -274,18 +268,14 @@ def run(radio, tft_display, sensor):
     # Run this loop forever.
     while True:
 
-        # # Testing dimming
-        # brightness = random.choice([10, 25, 50, 100])
-        # print(f"Setting brightness to {brightness}...")
-        # tft_display.set_backlight(brightness)
-        #
+        # do this often:
         set_brightness_value(tft_display, sensor)
 
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 
         set_brightness_value(tft_display, sensor)
     
-        # Temp is is just displayed "raw".
+        # Temperature is is just displayed "raw".
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
         show_status_info(radio, tft_display, missed_packets)
