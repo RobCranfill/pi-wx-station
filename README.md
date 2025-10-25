@@ -1,5 +1,5 @@
 # pi-wx-station
-A RP2040-based weather station
+A Feather RP2040-based weather station
 
 # Goal
 I want to make my own weather station, in large part becuase
@@ -15,8 +15,9 @@ than buy a new one every few years!
   * Anemometer: Part number RS-FSJT-NPN, from Amazon (or see below)
   * Adafruit 2.2" TFT LCD display - beautiful!
   * A light sensor so we can dim the display as appropriate
-  * Antenna as needed; so far a quarter-wave wire antenna suffices (altho it may be marginal)
+  * Antennas as needed; so far a quarter-wave wire antenna suffices (altho it may be marginal)
   * Low priority:
+    * Pressure, humidity display
     * Wind vane (for wind direction)
     * Solar sensor
 
@@ -37,13 +38,13 @@ The TFT display uis now using a boatload of pins:
 | ------ | ------ | ------ |
 | Gnd  | Gnd | GND
 | 3v3  | 3v3 | VIN
-| -  | ? | D/C
-| D9 | Reset | RESET
-| -  | SD card SPI chip select - unused | SD CS
+| D5  | SPI data/command | D/C
+| D9 | TFT reset | RESET
+| (D10)  | SD card SPI chip select - unused so far | SD CS
 | D11 | TFT SPI chip select | LCD CS
-| -  | SPI MCU Out | MOSI
-| -  | SPI MCU In | MISO
-| -  | SPI clock | SCK
+| MOSI  | SPI MCU Out | MOSI
+| MISO  | SPI MCU In | MISO
+| SCK  | SPI clock | SCK
 | D12  | Backlight PWM | BACKLIGHT
 
 Note that the RFM radio also uses the SPI bus so you have to avoid using its chip select line, D5 (SPI0 CS) :-/
@@ -54,20 +55,22 @@ The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See ht
 
 ## Thoughts
 
-The radio seems OK for my situation: a distance of about 100 feet, thru several walls of the house,
-but nothing too metallic or RF-generating in the way. I do get some missing packets; more research
-is needed. (An initial attempt to fix this involves upping the xmit power; we shall see if that works.)
+Initially the radio would miss occasional packets, when we used the default power settings. 
+We now set the xmit power to the maximum *when we are NOT running in "USB connected" mode -
+that is, not when the Feather is being presented as a USB disk, indicating we are connecfed to a PC
+and in dev mode. When in USB mode, we set the xmit power to the minimum. This is becuase some online
+info indicated that this can cause USB data corruption, which indeed we may have experienced.
 
 Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
 
 
-## Version 2
+## Fancier data collection?
 In order to support a more varied set of data points, take a somewhat more sophisticated approach:
  - Xmit various items as they are measured - wind speed every, say, 5 seconds, but temperature every 1 minute.
  - Send each item as an individual radio packet.
  - On the receive side, collect these values locally, and dispay them as desired.
  - This means noticing when a given value goes "stale". This could be complicated. Or not.
-
+ This seems unnecessarily complicated, espcially when I'm only taking two data measurements. Not now.
 
 
 ## Reference
@@ -83,14 +86,15 @@ When using the pulse-type wind speed sensor, connect the black wire to the power
 
 ### Notes on creating a font for TFT display
 
-1) Create a bitmap
+1) Create a bitmap of appropriate size:
 	
 	otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf
 
-2) Remove all but digits and "M", using FontForge
+2) Remove all but digits, "M" (for kerning), " , "T", "W" and "?", using FontForge.
  
 	- Open bdf file
-	- Select 0-9, M, and ' ' (space)
-	- Invert selection
+	- Select 0-9, M, T, W, '?' and ' ' (space)
+	- Edit / Invert selection
 	- Encoding / Detach & Remove Glyphs... 
 	- File / Generate Fonts...
+    - Save as "fonts/LeagueSpartanBold-piwx.bdf"
