@@ -152,14 +152,14 @@ def set_brightness_value(tft, light_sensor):
         lux = light_sensor.lux
 
         # 1000 lux, "indoors near the windows on a clear day", gets full LED value.
-        # This seems OK, but not very scientific
-        # 1000 seems low - let's try 2000?
+        # 1000 seems high, try 100.
         #
-        lux_scaled = min(lux/2000, 1)
+        lux_scaled = min(lux/100, 1)
+
         lux_percent = int(100 * lux_scaled)
         if lux_percent < 20: # ad hoc floor
             lux_percent = 20
-        print(f" Brightness: {lux=} -> {lux_percent=}")
+        print(f" Brightness: {lux=} -> {lux_scaled=} -> {lux_percent=}")
 
     tft.set_backlight(lux_percent)
 
