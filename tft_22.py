@@ -49,10 +49,11 @@ class tft_22():
         tft_bl = board.D12 # we need a PWM-capable pin
         # tft_sdcs = board.D10 # SD card chip select (unused so far, probably will never use)
 
-        rotate = 180 if flip_vertical else 0
+        # rotate = 180 if flip_vertical else 0
 
         display_bus = fourwire.FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
-        display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, rotation=rotate)
+        display = adafruit_ili9341.ILI9341(display_bus, 
+            width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, rotation=180 if flip_vertical else 0)
         self._display = display
 
         # we need to do manual refresh or the display gets all wonky

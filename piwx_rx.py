@@ -157,11 +157,13 @@ def set_brightness_value(tft, light_sensor):
         #
         lux_scaled = min(lux/2000, 1)
         lux_percent = int(100 * lux_scaled)
-        if lux_percent < 20: # ad hoc adjustment
+        if lux_percent < 20: # ad hoc floor
             lux_percent = 20
         print(f" Brightness: {lux=} -> {lux_percent=}")
 
     tft.set_backlight(lux_percent)
+
+    return lux_percent
 
 
 def c_to_f(c):
@@ -247,19 +249,21 @@ def test_tft_display(display):
         time.sleep(5)
 
 
-def show_status_info(radio, display, missed, which_status):
+def show_status_info(radio, display, missed, which_status, brightness):
     """Update some status info. You need to call update() on the display for this to show."""
     
     # TODO: a better way to be able to alternate messages?
 
     if which_status:
-        display.set_status_text(f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
+        display.set_status_text(
+            f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
     else:
-        display.set_status_text(f"MCU: {c_to_f(microcontroller.cpu.temperature):0.1f}F; Radio {c_to_f(radio.temperature)}F")
+        display.set_status_text(
+            f"MCU: {c_to_f(microcontroller.cpu.temperature):0.1f}F; Radio {c_to_f(radio.temperature)}F, TFT {brightness}%")
     return not which_status
 
 
-#############################################################3
+#############################################################
 # Main loop - only exits if exception thrown.
 #
 def run(radio, tft_display, sensor):
@@ -279,7 +283,7 @@ def run(radio, tft_display, sensor):
 
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 
-        set_brightness_value(tft_display, sensor)
+        b = set_brightness_value(tft_display, sensor)
 
         try:
             uptime_str = data_dict[piwx_constants.DICT_KEY_UPTIME]
@@ -293,12 +297,12 @@ def run(radio, tft_display, sensor):
         # Temperature is is just displayed "raw".
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
-        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a)
+        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a, b)
         update_display(tft_display, temp_str, True, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
 
-        set_brightness_value(tft_display, sensor)
+        b = set_brightness_value(tft_display, sensor)
 
         # Wind needs massaging - display running average.
         #
@@ -316,7 +320,7 @@ def run(radio, tft_display, sensor):
             print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg:0.1f}")
             wind_str = f"{avg:2.0f}"
 
-        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a)
+        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a, b)
         update_display(tft_display, wind_str, False, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
