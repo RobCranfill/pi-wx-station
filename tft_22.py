@@ -36,8 +36,8 @@ class tft_22():
     Features one big text area, and one little 'status' line at the bottom.
     YOu can set the color of the text, and control the display's backlight."""
 
-    def __init__(self, rgb_background, font_path=DEFAULT_FONT_PATH):
-                
+    def __init__(self, rgb_background, flip_vertical=True, font_path=DEFAULT_FONT_PATH):
+
         # Release any resources currently in use for the displays.
         displayio.release_displays()
 
@@ -45,12 +45,14 @@ class tft_22():
 
         tft_dc = board.D6
         tft_reset = board.D9
-        # tft_sdcs = board.D10 # SD card chip select (unused so far)
         tft_tcs = board.D11 # LCD CS = display chip select
         tft_bl = board.D12 # we need a PWM-capable pin
+        # tft_sdcs = board.D10 # SD card chip select (unused so far, probably will never use)
+
+        rotate = 180 if flip_vertical else 0
 
         display_bus = fourwire.FourWire(spi, command=tft_dc, chip_select=tft_tcs, reset=tft_reset)
-        display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+        display = adafruit_ili9341.ILI9341(display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, rotation=rotate)
         self._display = display
 
         # we need to do manual refresh or the display gets all wonky
@@ -83,7 +85,7 @@ class tft_22():
 
         # Nice little status line at the bottom.
         self._text_area_status = bitmap_label.Label(terminalio.FONT, text=f"{__name__} OK",
-                                             color=0xFFFFFF, x=10, y=DISPLAY_HEIGHT-10)
+                                             color=0xFFFFFF, x=10, y=DISPLAY_HEIGHT-6)
         splash.append(self._text_area_status)
 
 
@@ -95,15 +97,15 @@ class tft_22():
         self._backlight.duty_cycle = f_dc
 
     def set_text(self, text):
-        """Set the text to display. '0-9' (and 'M', if that's useful) only! You must refresh it when ready."""
+        """Set the text to display. '0-9' (and 'M', if that's useful) only! You must refresh the display when ready."""
         self._text_area.text = text
 
     def set_text_color(self, rgb_color):
-        """Set the text to the indicated RGB color. You must refresh it when ready."""
+        """Set the text to the indicated RGB color. You must refresh the display when ready."""
         self._text_area.color = rgb_color
 
     def set_status_text(self, text):
-        """The little text area at the bottom. You must refresh this."""
+        """The little text area at the bottom. You must refresh the display."""
         self._text_area_status.text = text
 
     def refresh(self):

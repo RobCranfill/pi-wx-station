@@ -10,11 +10,10 @@
 
 FIXME:
     - nicer update to display?
-    - missed packets not working
+    - missed packets not working?
     - wrap whole thing in try/catch
       - but don't re-init the hardware on another go-around!
     - if missed packet, don't re-compute average wind
-    - The "no value" value glyphs ("?T" or the like) aren't in the font!
 
 """
 
@@ -27,6 +26,7 @@ import traceback
 
 import board
 import digitalio
+import microcontroller
 
 # adafruit libs
 import adafruit_rfm69
@@ -39,10 +39,9 @@ import piwx_constants
 import tft_22
 
 
-
 ########################################################
 
-# Pause between showing the various measurements, in seconds.
+# Pause between showing the variou (two, currently) measurements, in seconds.
 DISPLAY_WAIT = 3
 
 # TODO: this may be important.
@@ -248,10 +247,16 @@ def test_tft_display(display):
         time.sleep(5)
 
 
-def show_status_info(radio, display, missed):
+def show_status_info(radio, display, missed, which_status):
     """Update some status info. You need to call update() on the display for this to show."""
+    
+    # TODO: a better way to be able to alternate messages?
 
-    display.set_status_text(f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
+    if which_status:
+        display.set_status_text(f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
+    else:
+        display.set_status_text(f"MCU: {c_to_f(microcontroller.cpu.temperature):0.1f}F; Radio {c_to_f(radio.temperature)}F")
+    return not which_status
 
 
 #############################################################3
@@ -261,6 +266,7 @@ def run(radio, tft_display, sensor):
 
     missed_packets = 0
     data_dict = initial_dict()
+    show_status_a = True # clunky - fix?
 
     averager = moving_average.moving_average(WIND_MOVING_AVG_SAMPLES)
     print(f"* Averaging wind readings over {WIND_MOVING_AVG_SAMPLES} samples.")
@@ -274,11 +280,20 @@ def run(radio, tft_display, sensor):
         data_dict, missed_packets = update_dict_from_radio(radio, data_dict, missed_packets)
 
         set_brightness_value(tft_display, sensor)
-    
+
+        try:
+            uptime_str = data_dict[piwx_constants.DICT_KEY_UPTIME]
+            if uptime_str is not None:
+                uptime = int(uptime_str)
+                print(f"TX uptime is {uptime}")
+        except KeyError:
+            print(f"  - No key {piwx_constants.DICT_KEY_UPTIME} - OK")
+
+
         # Temperature is is just displayed "raw".
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
-        show_status_info(radio, tft_display, missed_packets)
+        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a)
         update_display(tft_display, temp_str, True, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
@@ -301,7 +316,7 @@ def run(radio, tft_display, sensor):
             print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg:0.1f}")
             wind_str = f"{avg:2.0f}"
 
-        show_status_info(radio, tft_display, missed_packets)
+        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a)
         update_display(tft_display, wind_str, False, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
