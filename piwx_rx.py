@@ -92,6 +92,7 @@ def get_message(rfm):
         pstr = packet.decode('utf8')
         # print(f"Rcvd: '{pstr}'")
 
+        # TODO: somehow pre-load the default value dict, then overlay any received values?
         # TODO: catch exception?
         result = json.loads(pstr)
 
@@ -189,7 +190,7 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
     # Get a radio packet.
     #
     data = get_message(rfm)
-    print(f" Received: {data=}")
+    print(f" Received dictionary: {data}")
 
     if data is None: # or random.randint(0, 10) > 1: # For testing, drop some packets
         missed_packet_count += 1
@@ -251,18 +252,30 @@ def test_tft_display(display):
         is_temperaure = not is_temperaure
         time.sleep(5)
 
+def sec_to_hms(seconds):
+    """Return an HH:MM:SS string."""
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return f"{h:02}:{m:02}:{s:02}"
 
-def show_status_info(radio, display, missed, which_status, brightness):
+
+def show_status_info(radio, display, missed, which_status, brightness, transmitter_uptime):
     """Update some status info. You need to call update() on the display for this to show."""
     
-    # TODO: a better way to be able to alternate messages?
+    # TODO: a better way to be able to alternate messages? Break this into two??
 
     if which_status:
         display.set_status_text(
             f"{missed} missed packets; RSSI {radio.last_rssi}; {gc.mem_free()} bytes free")
     else:
         display.set_status_text(
-            f"MCU: {c_to_f(microcontroller.cpu.temperature):0.1f}F; Radio {c_to_f(radio.temperature)}F, TFT {brightness}%")
+            (
+                f"MCU: {c_to_f(microcontroller.cpu.temperature):0.1f}F; "
+                f"Radio {c_to_f(radio.temperature)}F, "
+                f"TFT {brightness}%; "
+                f"TX up {sec_to_hms(transmitter_uptime)}")
+            )
+
     return not which_status
 
 
@@ -278,6 +291,7 @@ def check_proximity(proximity_sensor):
 def run(radio, tft_display, sensor):
 
     missed_packets = 0
+    tx_uptime = 0
     data_dict = initial_dict()
     show_status_a = True # clunky - fix?
 
@@ -297,19 +311,17 @@ def run(radio, tft_display, sensor):
 
         b = set_brightness_value(tft_display, sensor)
 
-        try:
-            uptime_str = data_dict[piwx_constants.DICT_KEY_UPTIME]
-            if uptime_str is not None:
-                uptime = int(uptime_str)
-                print(f"TX uptime is {uptime}")
-        except KeyError:
-            print(f"  - No key {piwx_constants.DICT_KEY_UPTIME} - OK")
+        tx_uptime = data_dict[piwx_constants.DICT_KEY_UPTIME]
+        if tx_uptime is None:
+            tx_uptime = -1
+        # else:
+            # print(f"TX uptime is {tx_uptime} - {type(tx_uptime)=}")
 
 
         # Temperature is is just displayed "raw".
         temp_str = data_dict[piwx_constants.DICT_KEY_TEMPERATURE]
 
-        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a, b)
+        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a, b, tx_uptime)
         update_display(tft_display, temp_str, True, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
@@ -332,7 +344,7 @@ def run(radio, tft_display, sensor):
             print(f" >> wind speed {wind_val}; {WIND_MOVING_AVG_SAMPLES} second average now {avg:0.1f}")
             wind_str = f"{avg:2.0f}"
 
-        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a, b)
+        show_status_a = show_status_info(radio, tft_display, missed_packets, show_status_a, b, tx_uptime)
         update_display(tft_display, wind_str, False, missed_packets)
 
         time.sleep(DISPLAY_WAIT)
