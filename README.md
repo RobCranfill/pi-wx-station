@@ -50,9 +50,6 @@ The TFT display uis now using a boatload of pins:
 Note that the RFM radio also uses the SPI bus so you have to avoid using its chip select line, D5 (SPI0 CS) :-/
 
 
-The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
-
-
 ## Thoughts
 
 Initially the radio would miss occasional packets, when we used the default power settings. 
@@ -63,8 +60,17 @@ info indicated that this can cause USB data corruption, which indeed we may have
 
 Could be made slightly more cheaply with RP Pico and Adafruit RFM69HCW Transceiver Radio Breakout.
 
+## Things to do - or not
 
-## Fancier data collection?
+### Bugz
+ * Dropped packets - don't update average wind speed
+
+### New features
+ * Use the VCNL4020's (light sensor) proxmity sensing for control?
+   - Will have to modify case?
+
+
+### Fancier data collection? (Not really needed yet)
 In order to support a more varied set of data points, take a somewhat more sophisticated approach:
  - Xmit various items as they are measured - wind speed every, say, 5 seconds, but temperature every 1 minute.
  - Send each item as an individual radio packet.
@@ -83,14 +89,17 @@ When using the pulse-type wind speed sensor, connect the black wire to the power
 ### Helpful article
  * https://how2electronics.com/interfacing-anemometer-npn-pulse-output-with-arduino/
 
+### Radio
+The Adafruit RFM parts use the so-called ISM "no-license" band at 915MHz. See https://en.wikipedia.org/wiki/ISM_radio_band
+
 
 ### Notes on creating a font for TFT display
 
 1) Create a bitmap of appropriate size:
 	
-	otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf
+	`otf2bdf LeagueGothic-Regular.ttf -p 220 -o LeagueGothic-Regular-220.bdf`
 
-2) Remove all but digits, "M" (for kerning), " , "T", "W" and "?", using FontForge.
+2) Using FontForge, remove all but digits, "M" (for kerning), " , "T", "W" and "?".
  
 	- Open bdf file
 	- Select 0-9, M, T, W, '?' and ' ' (space)

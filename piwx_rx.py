@@ -191,7 +191,7 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
     data = get_message(rfm)
     print(f" Received: {data=}")
 
-    if data is None: # or random.randint(0, 10) > 1: # For testing, miss 80% of packets?
+    if data is None: # or random.randint(0, 10) > 1: # For testing, drop some packets
         missed_packet_count += 1
         print(f"** missing packet #{missed_packet_count}")
 
@@ -203,11 +203,14 @@ def update_dict_from_radio(rfm, dict, missed_packet_count):
         # print("Got data packet - resetting missed packet count.")
         missed_packet_count = 0
 
-        for k in ['T', 'W']:
-            data_val = str(data[k])
-            dict[k] = data_val
-            # print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
-        # print(f" update_dict_from_radio: {dict=}")
+        # for k in ['T', 'W']:
+        #     data_val = str(data[k])
+        #     dict[k] = data_val
+        #     # print(f" * update_dict_from_radio assigning {k} = '{dict[k]}'")
+        # # print(f" update_dict_from_radio: {dict=}")
+
+        # Return whole thing!
+        dict = data
 
     return dict, missed_packet_count
 
@@ -263,6 +266,12 @@ def show_status_info(radio, display, missed, which_status, brightness):
     return not which_status
 
 
+def check_proximity(proximity_sensor):
+
+    print(f"\n*** {proximity_sensor.proximity=}\n")
+
+
+
 #############################################################
 # Main loop - only exits if exception thrown.
 #
@@ -277,6 +286,9 @@ def run(radio, tft_display, sensor):
 
     # Run this loop forever.
     while True:
+
+        check_proximity(sensor)
+    
 
         # do this often:
         set_brightness_value(tft_display, sensor)
