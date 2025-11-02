@@ -41,6 +41,12 @@ import tft_22
 
 ########################################################
 
+DISPLAY_COLOR_TEMPERATURE = 0x00FF00
+# DISPLAY_COLOR_WIND = 0x4040FF # lighter blue - pure blue too dark
+# DISPLAY_COLOR_WIND = 0x87CEEB # sky blue?
+DISPLAY_COLOR_WIND = 0x88CCEE # sky blue?
+
+
 # Pause between showing the variou (two, currently) measurements, in seconds.
 DISPLAY_WAIT = 3
 
@@ -222,9 +228,9 @@ def update_display(tft, text, is_temperature, missed_packets):
     # print(f" DISPLAY: '{text}' {is_temperature}")
     tft.set_text(text)
     if is_temperature:
-        tft.set_text_color(0x00FF00)
+        tft.set_text_color(DISPLAY_COLOR_TEMPERATURE)
     else:
-        tft.set_text_color(0x0000FF)
+        tft.set_text_color(DISPLAY_COLOR_WIND)
 
     tft.refresh()
 
